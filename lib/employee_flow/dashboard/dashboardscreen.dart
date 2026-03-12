@@ -1,5 +1,5 @@
-import 'package:employee_app/atterdance/attendance_screen.dart';
-import 'package:employee_app/leaves/leavescreen.dart';
+import 'package:employee_app/employee_flow/atterdance/attendance_screen.dart';
+import 'package:employee_app/employee_flow/leaves/leavescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dashboard_controller.dart';

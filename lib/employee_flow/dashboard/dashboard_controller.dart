@@ -37,6 +37,7 @@ class DashboardController extends GetxController {
   void onInit() {
     super.onInit();
     _loadDashboardData();
+    checkAttendanceStatus();
     fetchMonthlyAttendance();
     fetchTotalAttendance();
   }
@@ -51,9 +52,7 @@ class DashboardController extends GetxController {
 
   Future<void> _loadDashboardData() async {
     final authController = Get.find<AuthController>();
-    employeeId =
-        ApiService.extractEmployeeId(authController.employee) ??
-        await ApiService.getEmployeeId();
+    employeeId = await ApiService.getEmployeeId();
 
     if (employeeId == null) {
       print('Dashboard: employeeId not found');
@@ -117,7 +116,7 @@ class DashboardController extends GetxController {
 
     try {
       final dynamic response = await ApiService.get(Apis.attendanceToday);
-      print('📅 ✅ Response: $response');
+      print(' Response====================== ${response}');
 
       Map<String, dynamic> data = {};
 
@@ -150,21 +149,10 @@ class DashboardController extends GetxController {
       }
 
       // Status
-      final rawStatus = data['status'] as String? ?? '';
-      todayStatus = rawStatus.isEmpty
-          ? 'Not Marked'
-          : rawStatus
-                .replaceAll('_', ' ')
-                .split(' ')
-                .map(_capitalize)
-                .join(' ');
-
+      print('print the data of check in ${response}');
       // Check-in time
-      final rawLogin =
-          data['login_at'] as String? ??
-          data['login_time'] as String? ??
-          data['check_in'] as String? ??
-          '';
+      final rawLogin = response['date'];
+
       checkInTime = rawLogin.isEmpty ? '--:-- --' : _formatTime(rawLogin);
 
       // Working hours
@@ -210,6 +198,27 @@ class DashboardController extends GetxController {
       print('📅 ❌ $e');
       isLoadingToday = false;
       _safeUpdate();
+    }
+  }
+
+  Future<void> checkAttendanceStatus() async {
+    final id = await ApiService.getEmployeeId();
+    print('employee id ${employeeId}');
+    if (id == null) return;
+
+    try {
+      final res = await ApiService.get(Apis.attendanceStatus(id));
+
+      print("check status response ${res}");
+      print("check status response ${res.runtimeType}");
+      if (res is Map) {
+        final status = (res['status'] ?? '').toString().toLowerCase();
+        todayStatus = status;
+      }
+
+      _safeUpdate();
+    } catch (e) {
+      print(e);
     }
   }
 

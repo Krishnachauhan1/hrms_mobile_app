@@ -1,7 +1,7 @@
-import 'package:employee_app/atterdance/attendance_screen.dart';
-import 'package:employee_app/dashboard/dashboardscreen.dart';
-import 'package:employee_app/leaves/leavescreen.dart';
-import 'package:employee_app/salary/salaryscreen.dart';
+import 'package:employee_app/employee_flow/atterdance/attendance_screen.dart';
+import 'package:employee_app/employee_flow/dashboard/dashboardscreen.dart';
+import 'package:employee_app/employee_flow/leaves/leavescreen.dart';
+import 'package:employee_app/employee_flow/salary/salaryscreen.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {

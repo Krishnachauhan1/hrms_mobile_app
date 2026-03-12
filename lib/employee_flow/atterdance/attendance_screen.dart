@@ -191,7 +191,7 @@ class AttendancePage extends StatelessWidget {
     );
   }
 
-  /// Center widget logic:
+  //Center widget logic
 
   Widget _buildCenterWidget(AttendanceController controller) {
     if (controller.isRecognized) {

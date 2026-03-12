@@ -22,10 +22,8 @@ class MainShellView extends GetView<MainShellController> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: GetBuilder<MainShellController>(
-        builder: (controller) => IndexedStack(
-          index: controller.currentIndex,
-          children: _pages,
-        ),
+        builder: (controller) =>
+            IndexedStack(index: controller.currentIndex, children: _pages),
       ),
       bottomNavigationBar: GetBuilder<MainShellController>(
         builder: (controller) => _BottomNavBar(
@@ -53,7 +51,7 @@ class _BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.orange,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),

@@ -1,30 +1,26 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:employee_app/hr_flow/controller/main_shell_controller.dart';
 import 'package:employee_app/hr_flow/models/attendance_model.dart';
 import 'package:employee_app/hr_flow/models/employee_model.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class AttendanceController extends GetxController {
   late final MainShellController _shell;
 
-  // ── Reactive State ─────────────────────────────────────────
+  // Reactive State
   final selectedDate = DateTime.now().obs;
   final selectedEmployeeId = ''.obs;
   final viewMode = 'list'.obs;
-
-  // LOCAL reactive copy of attendance — Obx reads this directly
   final records = <Attendance>[].obs;
 
   @override
   void onInit() {
     super.onInit();
     _shell = Get.find<MainShellController>();
-    // Sync local list from shell on start
     records.assignAll(_shell.attendanceRecords);
-    update();
   }
 
-  // ── Helpers ────────────────────────────────────────────────
+  //  Helpers
   List<Employee> get employees => _shell.employees;
 
   /// Records shown in the list for the selected date + filter
@@ -64,34 +60,19 @@ class AttendanceController extends GetxController {
     }
   }
 
-  // ── Date & View Navigation ─────────────────────────────────
-  void changeDate(DateTime date) {
-    selectedDate.value = date;
-    update();
-  }
-
-  void prevDay() {
-    selectedDate.value = selectedDate.value.subtract(const Duration(days: 1));
-    update();
-  }
-
+  // ── Date & View Navigation
+  void changeDate(DateTime date) => selectedDate.value = date;
+  void prevDay() =>
+      selectedDate.value = selectedDate.value.subtract(const Duration(days: 1));
   void nextDay() {
     final next = selectedDate.value.add(const Duration(days: 1));
-    if (!next.isAfter(DateTime.now())) {
-      selectedDate.value = next;
-      update();
-    }
+    if (!next.isAfter(DateTime.now())) selectedDate.value = next;
   }
 
-  void toggleViewMode() {
-    viewMode.value = viewMode.value == 'list' ? 'calendar' : 'list';
-    update();
-  }
+  void toggleViewMode() =>
+      viewMode.value = viewMode.value == 'list' ? 'calendar' : 'list';
 
-  void setEmployeeFilter(String empId) {
-    selectedEmployeeId.value = empId;
-    update();
-  }
+  void setEmployeeFilter(String empId) => selectedEmployeeId.value = empId;
 
   // ── Stats ──────────────────────────────────────────────────
   int get presentCount =>
@@ -147,17 +128,15 @@ class AttendanceController extends GetxController {
       ..removeWhere(
         (r) =>
             r.employeeId == employeeId &&
-            r.date.year == cleanDate.year &&
+            r!.date.year == cleanDate.year &&
             r.date.month == cleanDate.month &&
             r.date.day == cleanDate.day,
       )
       ..add(newRecord);
-    _shell.update();
 
     // Jump to the saved date so user sees the record immediately
     selectedDate.value = cleanDate;
     selectedEmployeeId.value = '';
-    update();
 
     Get.snackbar(
       'Saved ✓',
@@ -197,12 +176,10 @@ class AttendanceController extends GetxController {
     if (shellIdx != -1) {
       _shell.attendanceRecords[shellIdx] = updated;
     }
-    _shell.update();
 
     // Jump to that date
     selectedDate.value = DateTime(old.date.year, old.date.month, old.date.day);
     selectedEmployeeId.value = '';
-    update();
 
     Get.snackbar(
       'Updated ✓',
@@ -335,7 +312,7 @@ class AttendanceController extends GetxController {
                             0xFFFF9800,
                           ).withOpacity(0.1),
                           child: Text(
-                            existing.employeeName[0],
+                            existing!.employeeName[0],
                             style: const TextStyle(
                               color: Color(0xFFFF9800),
                               fontWeight: FontWeight.bold,
@@ -580,7 +557,7 @@ class AttendanceController extends GetxController {
                           //SAVE / UPDATE CALL
                           if (isEdit) {
                             updateAttendance(
-                              recordId: existing.id,
+                              recordId: existing!.id,
                               newStatus: formStatus.value,
                               checkInTime: checkIn,
                               checkOutTime: checkOut,

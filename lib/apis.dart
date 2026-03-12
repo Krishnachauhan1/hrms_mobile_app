@@ -6,7 +6,10 @@ class Apis {
   static const String register = '/register';
   static const String logout = '/logout';
 
-  //employee attendance by face scanning
+  //hr login endpoint
+  static const String hrLogin = '/organization/login';
+
+  //employee attendance
   static const String attendanceLogin = '/attendance/login';
   static const String attendanceLogout = '/attendance/logout';
   static const String attendanceToday = '/employees-attendance/today';
@@ -25,6 +28,4 @@ class Apis {
   //salary
   static String employeeSalary(int employeeId) =>
       '/employees/$employeeId/salary';
-
-  // static const String profile = '/profile';
 }

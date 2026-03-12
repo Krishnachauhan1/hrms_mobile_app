@@ -211,6 +211,28 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> hrLogin({
+    required String email,
+    required String password,
+  }) async {
+    final url = Uri.parse('${Apis.baseUrl}/organization/login');
+
+    final headers = await _buildHeaders(withAuth: false);
+
+    final body = jsonEncode({"email": email, "password": password});
+
+    print('hr login point============= $url');
+
+    try {
+      final response = await http
+          .post(url, headers: headers, body: body)
+          .timeout(_requestTimeout);
+
+      return _handleResponse(response);
+    } on TimeoutException {
+      throw ApiException(statusCode: 408, message: "Request timeout");
+    }
+  }
   // Generic CRUD helpers
 
   static Future<dynamic> get(String endpoint) async {
@@ -331,8 +353,8 @@ class ApiService {
 
   //  error handler
   static Map<String, dynamic> _handleResponse(http.Response response) {
-    print('API Status: ${response.statusCode}');
-    print('API Body:   ${response.body}');
+    // print('API Status: ${response.statusCode}');
+    // print('API Body:   ${response.body}');
 
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 

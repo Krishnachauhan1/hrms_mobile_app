@@ -12,11 +12,11 @@ class AttendanceView extends GetView<AttendanceController> {
       backgroundColor: Colors.orange,
       appBar: _buildAppBar(),
       floatingActionButton: _AddFAB(controller: controller),
-      // body: Obx(
-      //   // () => controller.viewMode.value == 'calendar'
-      //       ? _CalendarView(controller: controller)
-      //       : _ListView(controller: controller),
-      // ),
+      body: Obx(
+        () => controller.viewMode.value == 'calendar'
+            ? _CalendarView(controller: controller)
+            : _ListView(controller: controller),
+      ),
     );
   }
 
@@ -191,7 +191,7 @@ class _DateNavigator extends StatelessWidget {
         child: child!,
       ),
     );
-    // if (picked != null) c.changeDate(picked);
+    if (picked != null) c.changeDate(picked);
   }
 }
 
@@ -319,7 +319,7 @@ class _EmpChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white70,
+                color: isSelected ? Colors.black : Colors.white70,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 fontSize: 13,
               ),
@@ -412,7 +412,7 @@ class _StatBox extends StatelessWidget {
               label,
               style: const TextStyle(
                 fontSize: 10,
-                color: Colors.white70,
+                color: Colors.greenAccent,
                 fontWeight: FontWeight.w500,
               ),
             ),

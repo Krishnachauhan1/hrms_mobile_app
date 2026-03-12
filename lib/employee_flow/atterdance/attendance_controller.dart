@@ -468,7 +468,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         fileField: 'photo',
       );
 
-      print('🔴 ✅ $response');
+      print('checkout response=========================== $response');
 
       isCheckedIn = false;
       isScanning = false;
@@ -504,35 +504,65 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   //ATTENDANCE STATUS
+  // Future<void> checkAttendanceStatus() async {
+  //   final id = employeeId;
+  //   if (id == null) return;
+  //   try {
+  //     final res = await ApiService.get(Apis.attendanceStatus(id));
+  //     print('employees attendance status.................. $res');
+
+  //     if (res is Map) {
+  //       isCheckedIn =
+  //           res['checked_in'] ??
+  //           res['data']?['checked_in'] ??
+  //           res['is_checked_in'] ??
+  //           false;
+
+  //       final status = (res['status'] as String? ?? '').toLowerCase();
+  //       if (status.isNotEmpty) {
+  //         isCheckedIn =
+  //             isCheckedIn ||
+  //             status == 'checked_in' ||
+  //             status.contains('logged_in');
+  //       }
+  //     }
+  //     print('employee isCheckedIn ==================== $isCheckedIn');
+  //     _safeUpdate();
+  //   } catch (e) {
+  //     print('error in status................ $e');
+  //   }
+  // }
   Future<void> checkAttendanceStatus() async {
     final id = employeeId;
     if (id == null) return;
+
     try {
       final res = await ApiService.get(Apis.attendanceStatus(id));
-      print('employees attendance status.................. $res');
 
       if (res is Map) {
-        isCheckedIn =
-            res['checked_in'] ??
-            res['data']?['checked_in'] ??
-            res['is_checked_in'] ??
-            false;
+        final status = (res['status'] ?? '').toString().toLowerCase();
 
-        final status = (res['status'] as String? ?? '').toLowerCase();
-        if (status.isNotEmpty) {
-          isCheckedIn =
-              isCheckedIn ||
-              status == 'checked_in' ||
-              status.contains('logged_in');
+        switch (status) {
+          case 'checked_in':
+          case 'logged_in':
+          case 'present':
+            isCheckedIn = true;
+            break;
+
+          case 'not_logged_in':
+          case 'absent':
+          default:
+            isCheckedIn = false;
         }
       }
-      print('employee isCheckedIn ==================== $isCheckedIn');
+
+      print("isCheckedIn = $isCheckedIn");
+
       _safeUpdate();
     } catch (e) {
-      print('error in status................ $e');
+      print(e);
     }
   }
-
   // TODAY ATTENDACE
 
   Future<void> fetchTodayAttendance() async {

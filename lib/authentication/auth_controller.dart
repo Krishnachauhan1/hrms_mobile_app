@@ -1,4 +1,5 @@
 import 'package:employee_app/api_service.dart';
+import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -29,11 +30,7 @@ class AuthController extends GetxController {
     final password = loginPasswordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      _showError('Please fill in all fields');
-      return;
-    }
-    if (!GetUtils.isEmail(email)) {
-      _showError('Please enter a valid email');
+      _showError("Fill all fields");
       return;
     }
 
@@ -41,25 +38,46 @@ class AuthController extends GetxController {
     update();
 
     try {
+      try {
+        final hrData = await ApiService.hrLogin(
+          email: email,
+          password: password,
+        );
+
+        if (hrData != null && hrData["token"] != null) {
+          await ApiService.saveToken(hrData["token"]);
+
+          await ApiService.saveEmployee(hrData["organization"]);
+
+          print("login as a hr");
+
+          Get.offAllNamed(AppRoutes.MAIN_SHELL);
+
+          isLoginLoading = false;
+          update();
+          return;
+        }
+      } catch (e) {
+        print(" HR is not login");
+      }
+
+      // EMPLOYEE LOGIN
       final data = await ApiService.login(email: email, password: password);
-
-      token = data['token'] ?? data['access_token'];
-      employee =
-          ApiService.extractEmployee(data) ??
-          (data['employee'] ?? data['user'] ?? data['data']);
-
+      final token = data["token"];
+      final employee = data["employee"] ?? data["user"] ?? data["data"];
       if (token != null) {
-        await ApiService.saveToken(token!);
-      }
-      if (employee != null) {
-        await ApiService.saveEmployee(employee!);
+        await ApiService.saveToken(token);
       }
 
-      Get.offAllNamed('/home');
-    } on ApiException catch (e) {
-      _showError(e.message);
+      if (employee != null) {
+        await ApiService.saveEmployee(employee);
+      }
+
+      print("login as employee");
+
+      Get.offAllNamed("/home");
     } catch (e) {
-      _showError('Network error. Please check your connection.');
+      _showError("Login failed");
     }
 
     isLoginLoading = false;
