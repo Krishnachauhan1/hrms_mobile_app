@@ -166,7 +166,6 @@ class ApiService {
     final headers = await _buildHeaders(withAuth: false);
     final body = jsonEncode({'email': email, 'password': password});
 
-    print('login api is ............... $url');
     try {
       final response = await http
           .post(url, headers: headers, body: body)
