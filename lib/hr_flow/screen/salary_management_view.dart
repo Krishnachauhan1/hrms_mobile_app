@@ -225,7 +225,7 @@ class SalaryManagementView extends GetView<SalaryManagementController> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Rs. ${NumberFormat('#,##,###').format('emp.salary')}',
+                    'Rs. ${NumberFormat('#,##,###').format(emp.salary)}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,

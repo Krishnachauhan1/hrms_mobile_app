@@ -3,11 +3,7 @@ class Apis {
 
   //empoyee login endpoint
   static const String login = '/login';
-  static const String register = '/register';
   static const String logout = '/logout';
-
-  //hr login endpoint
-  static const String hrLogin = '/organization/login';
 
   //employee attendance
   static const String attendanceLogin = '/attendance/login';
@@ -24,6 +20,8 @@ class Apis {
   //employee leave
   static const String leaveTypes = '/leave-types';
   static const String leaveApplications = '/leave-applications';
+  static String leaveApplicationStatus(String id) =>
+      '/leave-applications/$id/status';
 
   //salary
   static String employeeSalary(int employeeId) =>

@@ -3,11 +3,15 @@ class LeaveRequest {
   final String employeeId;
   final String employeeName;
   final String department;
-  final String leaveType; // Sick, Casual, Annual, Emergency
+
+  final String leaveType;
+  final int? leaveTypeId;
+  final String? leaveTypeName;
+
   final DateTime startDate;
   final DateTime endDate;
   final String reason;
-  final String status; // Pending, Approved, Rejected
+  final String status;
   final DateTime requestDate;
   final String? hrComment;
 
@@ -17,6 +21,8 @@ class LeaveRequest {
     required this.employeeName,
     required this.department,
     required this.leaveType,
+    this.leaveTypeId,
+    this.leaveTypeName,
     required this.startDate,
     required this.endDate,
     required this.reason,
@@ -33,6 +39,8 @@ class LeaveRequest {
     String? employeeName,
     String? department,
     String? leaveType,
+    int? leaveTypeId,
+    String? leaveTypeName,
     DateTime? startDate,
     DateTime? endDate,
     String? reason,
@@ -46,12 +54,48 @@ class LeaveRequest {
       employeeName: employeeName ?? this.employeeName,
       department: department ?? this.department,
       leaveType: leaveType ?? this.leaveType,
+      leaveTypeId: leaveTypeId ?? this.leaveTypeId,
+      leaveTypeName: leaveTypeName ?? this.leaveTypeName,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       reason: reason ?? this.reason,
       status: status ?? this.status,
       requestDate: requestDate ?? this.requestDate,
       hrComment: hrComment ?? this.hrComment,
+    );
+  }
+
+  factory LeaveRequest.fromJson(Map<String, dynamic> json) {
+    final leaveTypeObj = json['leave_type'];
+
+    return LeaveRequest(
+      id: json['id'].toString(),
+      employeeId: json['employee_id']?.toString() ?? '',
+      employeeName: json['employee_name'] ?? '',
+      department: json['department'] ?? '',
+
+      leaveTypeName:
+          json['leave_type_name'] ??
+          (leaveTypeObj is Map ? leaveTypeObj['name'] : null),
+
+      leaveTypeId: json['leave_type_id'],
+
+      leaveType:
+          json['leave_type_name'] ??
+          (leaveTypeObj is Map ? leaveTypeObj['name'] : 'Leave'),
+
+      startDate: DateTime.tryParse(json['from_date'] ?? '') ?? DateTime.now(),
+
+      endDate: DateTime.tryParse(json['to_date'] ?? '') ?? DateTime.now(),
+
+      reason: json['reason'] ?? '',
+
+      status: json['status'] ?? 'Pending',
+
+      requestDate:
+          DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+
+      hrComment: json['hr_comment'],
     );
   }
 }

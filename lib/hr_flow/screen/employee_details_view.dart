@@ -1,3 +1,4 @@
+import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/employee_detail_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -24,7 +25,7 @@ class EmployeeDetailsView extends GetView<EmployeeDetailsController> {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: const BoxDecoration(
-                color: Colors.orange,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(25),
                   bottomRight: Radius.circular(25),

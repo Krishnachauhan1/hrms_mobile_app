@@ -110,7 +110,7 @@ class DashboardController extends GetxController {
   // Today Attendance
 
   Future<void> fetchTodayAttendance() async {
-    print('📅 Dashboard: GET today → ${Apis.baseUrl}${Apis.attendanceToday}');
+    print('📅 Dashboard: GET today ${Apis.baseUrl}${Apis.attendanceToday}');
     isLoadingToday = true;
     _safeUpdate();
 
@@ -124,8 +124,10 @@ class DashboardController extends GetxController {
         final raw = response['data'];
 
         if (raw is List) {
+          print("raw list ================ $raw");
           final employee = raw.firstWhereOrNull((e) {
             final eId = e['employee_id'];
+            print("local employee id.................... $employeeId");
             return eId?.toString() == employeeId?.toString();
           });
 
@@ -139,7 +141,7 @@ class DashboardController extends GetxController {
                 '  → employee_id: ${e['employee_id']} (${e['employee_id'].runtimeType})',
               );
             }
-            print('  → looking for: $employeeId (${employeeId.runtimeType})');
+            print(' looking for: $employeeId (${employeeId.runtimeType})');
           }
         } else if (raw is Map<String, dynamic>) {
           data = raw;
@@ -152,11 +154,11 @@ class DashboardController extends GetxController {
       print('print the data of check in ${response}');
       // Check-in time
       final rawLogin = response['date'];
-
       checkInTime = rawLogin.isEmpty ? '--:-- --' : _formatTime(rawLogin);
 
       // Working hours
       final rawHours = data['total_work_hours'] ?? data['total_hours'];
+      print('total work hours${data}');
       if (rawHours != null) {
         workingHours = _formatHours(rawHours);
       } else {
@@ -176,6 +178,7 @@ class DashboardController extends GetxController {
           }
         } else {
           workingHours = '0:00 hrs';
+          print('working hours====================${workingHours}');
         }
       }
 

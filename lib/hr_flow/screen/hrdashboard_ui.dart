@@ -1,3 +1,4 @@
+import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/hrdashboardcontroller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -81,19 +82,19 @@ class HRDashboardView extends GetView<HRDashboardController> {
           'Total Employees',
           controller.totalEmployees.toString(),
           Icons.people,
-          Colors.orange,
+          AppColors.primary,
         ),
         _buildStatCard(
           'Active',
           controller.activeEmployees.toString(),
           Icons.check_circle,
-          Colors.orangeAccent,
+          AppColors.secondary,
         ),
         _buildStatCard(
           'On Leave',
           controller.onLeaveEmployees.toString(),
           Icons.event_busy,
-          Colors.orange,
+          AppColors.primary,
         ),
         _buildStatCard(
           'Logged In',
@@ -152,13 +153,13 @@ class HRDashboardView extends GetView<HRDashboardController> {
         _buildActionCard(
           'Employees',
           Icons.people_outline,
-          Colors.orange,
+          AppColors.primary,
           controller.navigateToEmployeeList,
         ),
         _buildActionCard(
           'Leave Management',
           Icons.event_note,
-          Colors.orangeAccent,
+          AppColors.secondary,
           controller.navigateToLeaveManagement,
         ),
         _buildActionCard(
@@ -170,7 +171,7 @@ class HRDashboardView extends GetView<HRDashboardController> {
         _buildActionCard(
           'Attendance',
           Icons.access_time,
-          Colors.orange,
+          AppColors.primary,
           controller.navigateToAttendance,
         ),
       ],
@@ -257,7 +258,7 @@ class HRDashboardView extends GetView<HRDashboardController> {
             ),
             trailing: Chip(
               label: Text(leave.status, style: const TextStyle(fontSize: 11)),
-              backgroundColor: Colors.orange.withOpacity(0.2),
+              backgroundColor: AppColors.primary.withOpacity(0.2),
             ),
           ),
         );
@@ -267,7 +268,7 @@ class HRDashboardView extends GetView<HRDashboardController> {
 
   Widget _buildLoggedInEmployees() {
     final loggedInEmployees = controller.employees
-        // .where((e) => e.isLoggedIn)
+        .where((e) => e.isLoggedIn)
         .toList();
 
     if (loggedInEmployees.isEmpty) {
