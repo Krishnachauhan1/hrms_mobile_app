@@ -162,11 +162,11 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    final url = Uri.parse('${Apis.baseUrl}${Apis.login}'); // ← from apis.dart
+    final url = Uri.parse('${Apis.baseUrl}${Apis.login}');
     final headers = await _buildHeaders(withAuth: false);
     final body = jsonEncode({'email': email, 'password': password});
 
-    print('[API] POST $url');
+    print('login api is ............... $url');
     try {
       final response = await http
           .post(url, headers: headers, body: body)
@@ -181,58 +181,6 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> register({
-    required String name,
-    required String email,
-    required String password,
-    required String passwordConfirmation,
-  }) async {
-    final url = Uri.parse('${Apis.baseUrl}${Apis.register}');
-    final headers = await _buildHeaders(withAuth: false);
-    final body = jsonEncode({
-      'name': name,
-      'email': email,
-      'password': password,
-      'password_confirmation': passwordConfirmation,
-    });
-
-    print('[API] POST $url');
-    try {
-      final response = await http
-          .post(url, headers: headers, body: body)
-          .timeout(_requestTimeout);
-
-      return _handleResponse(response);
-    } on TimeoutException {
-      throw ApiException(
-        statusCode: 408,
-        message: 'Request timed out. Please try again.',
-      );
-    }
-  }
-
-  static Future<Map<String, dynamic>> hrLogin({
-    required String email,
-    required String password,
-  }) async {
-    final url = Uri.parse('${Apis.baseUrl}/organization/login');
-
-    final headers = await _buildHeaders(withAuth: false);
-
-    final body = jsonEncode({"email": email, "password": password});
-
-    print('hr login point============= $url');
-
-    try {
-      final response = await http
-          .post(url, headers: headers, body: body)
-          .timeout(_requestTimeout);
-
-      return _handleResponse(response);
-    } on TimeoutException {
-      throw ApiException(statusCode: 408, message: "Request timeout");
-    }
-  }
   // Generic CRUD helpers
 
   static Future<dynamic> get(String endpoint) async {
@@ -276,6 +224,29 @@ class ApiService {
     try {
       final response = await http
           .put(url, headers: headers, body: jsonEncode(body))
+          .timeout(_requestTimeout);
+      return _handleResponse(response);
+    } on TimeoutException {
+      throw ApiException(
+        statusCode: 408,
+        message: 'Request timed out. Please try again.',
+      );
+    }
+  }
+
+  static Future<dynamic> patch(
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    final url = Uri.parse('${Apis.baseUrl}$endpoint');
+    final headers = await _buildHeaders();
+    try {
+      final response = await http
+          .patch(
+            url,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          )
           .timeout(_requestTimeout);
       return _handleResponse(response);
     } on TimeoutException {

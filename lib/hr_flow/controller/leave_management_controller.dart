@@ -2,25 +2,61 @@ import 'package:employee_app/hr_flow/controller/main_shell_controller.dart';
 import 'package:employee_app/hr_flow/models/leave_request_model.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import '../../api_service.dart';
+import '../../apis.dart';
 
 class LeaveManagementController extends GetxController {
   late final MainShellController _shell;
 
   String selectedFilter = 'Pending';
+  String? selectedLeaveTypeFilter;
+
   bool isSelectMode = false;
   final Set<String> selectedIds = <String>{};
+
+  // Leave Types
+  List<Map<String, dynamic>> leaveTypes = [];
+  bool isLeaveTypesLoading = false;
 
   @override
   void onInit() {
     super.onInit();
     _shell = Get.find<MainShellController>();
+    fetchLeaveTypes();
   }
 
+  // Fetch Leave Types
+  Future<void> fetchLeaveTypes() async {
+    isLeaveTypesLoading = true;
+    update();
+
+    try {
+      final res = await ApiService.get(Apis.leaveTypes);
+      if (res['success'] == true) {
+        final List data = res['data'];
+        leaveTypes = data.map((e) => e as Map<String, dynamic>).toList();
+      }
+    } catch (e) {
+      print('fetchLeaveTypes error: $e');
+    }
+
+    isLeaveTypesLoading = false;
+    update();
+  }
+
+  // Filtered Leaves (status + leave type both)
   List<LeaveRequest> get filteredLeaves {
-    if (selectedFilter == 'All') return _shell.leaveRequests;
-    return _shell.leaveRequests
-        .where((l) => l.status == selectedFilter)
-        .toList();
+    List<LeaveRequest> list = selectedFilter == 'All'
+        ? _shell.leaveRequests
+        : _shell.leaveRequests
+              .where((l) => l.status == selectedFilter)
+              .toList();
+
+    if (selectedLeaveTypeFilter != null) {
+      list = list.where((l) => l.leaveType == selectedLeaveTypeFilter).toList();
+    }
+
+    return list;
   }
 
   void setFilter(String filter) {
@@ -29,7 +65,12 @@ class LeaveManagementController extends GetxController {
     update();
   }
 
-  // ── Single Actions ────────────────────────────────────────
+  void setLeaveTypeFilter(String? typeName) {
+    selectedLeaveTypeFilter = typeName;
+    update();
+  }
+
+  //Single Actions
   void approveSingle(LeaveRequest leave) {
     _shell.approveLeave(leave.id);
     update();
@@ -58,7 +99,7 @@ class LeaveManagementController extends GetxController {
             TextField(
               controller: commentController,
               decoration: InputDecoration(
-                hintText: 'Enter reason (optional)',
+                hintText: 'Enter reason______',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -92,7 +133,7 @@ class LeaveManagementController extends GetxController {
     );
   }
 
-  // ── Bulk Selection ────────────────────────────────────────
+  //Bulk Selection
   void toggleSelectMode() {
     isSelectMode = !isSelectMode;
     if (!isSelectMode) selectedIds.clear();

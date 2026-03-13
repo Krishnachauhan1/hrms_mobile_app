@@ -1,3 +1,4 @@
+import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/employee_list_controller.dart';
 import 'package:employee_app/hr_flow/models/employee_model.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +33,7 @@ class _SearchAndFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: AppColors.textSecondary,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
       child: Column(
         children: [
@@ -40,7 +41,10 @@ class _SearchAndFilter extends StatelessWidget {
             onChanged: controller.searchEmployees,
             decoration: InputDecoration(
               hintText: 'Search by name, code, department...',
-              prefixIcon: const Icon(Icons.search_rounded, color: Colors.white),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: AppColors.primary,
+              ),
               filled: true,
               fillColor: Colors.grey.shade100,
               border: OutlineInputBorder(
@@ -66,11 +70,13 @@ class _SearchAndFilter extends StatelessWidget {
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: isSelected ? Colors.orange : Colors.transparent,
+                        color: isSelected
+                            ? AppColors.primary
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isSelected
-                              ? Colors.orange
+                              ? AppColors.primary
                               : Colors.grey.shade300,
                         ),
                       ),
@@ -78,8 +84,8 @@ class _SearchAndFilter extends StatelessWidget {
                         f,
                         style: TextStyle(
                           color: isSelected
-                              ? Colors.white
-                              : Colors.orangeAccent,
+                              ? AppColors.background
+                              : AppColors.textPrimary,
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.normal,
@@ -107,10 +113,14 @@ class _SummaryBar extends StatelessWidget {
     return GetBuilder<EmployeeListController>(
       builder: (controller) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        color: Colors.orange.withOpacity(0.06),
+        color: AppColors.primary.withOpacity(0.06),
         child: Row(
           children: [
-            _SummaryItem('Total', controller.total.toString(), Colors.orange),
+            _SummaryItem(
+              'Total',
+              controller.total.toString(),
+              AppColors.primary,
+            ),
             const SizedBox(width: 20),
             _SummaryItem(
               'Active',
@@ -166,34 +176,34 @@ class _EmployeeList extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<EmployeeListController>(
       builder: (controller) {
-      final employees = controller.filteredEmployees;
-      if (employees.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.person_search_rounded,
-                size: 64,
-                color: Colors.grey.shade300,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'No employees found',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ],
+        final employees = controller.filteredEmployees;
+        if (employees.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.person_search_rounded,
+                  size: 64,
+                  color: Colors.grey.shade300,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'No employees found',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: employees.length,
+          itemBuilder: (ctx, i) => _EmployeeCard(
+            employee: employees[i],
+            onTap: () => controller.viewEmployeeDetails(employees[i]),
           ),
         );
-      }
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: employees.length,
-        itemBuilder: (ctx, i) => _EmployeeCard(
-          employee: employees[i],
-          onTap: () => controller.viewEmployeeDetails(employees[i]),
-        ),
-      );
       },
     );
   }
@@ -236,7 +246,7 @@ class _EmployeeCard extends StatelessWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: AppColors.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -245,7 +255,7 @@ class _EmployeeCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: Colors.orange,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -281,7 +291,10 @@ class _EmployeeCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     employee.designation,
-                    style: const TextStyle(fontSize: 13, color: Colors.white70),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Row(

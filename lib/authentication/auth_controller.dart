@@ -1,4 +1,5 @@
 import 'package:employee_app/api_service.dart';
+import 'package:employee_app/hr_flow/main_shell_view.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -37,48 +38,28 @@ class AuthController extends GetxController {
     isLoginLoading = true;
     update();
 
-    try {
-      try {
-        final hrData = await ApiService.hrLogin(
-          email: email,
-          password: password,
-        );
-
-        if (hrData != null && hrData["token"] != null) {
-          await ApiService.saveToken(hrData["token"]);
-
-          await ApiService.saveEmployee(hrData["organization"]);
-
-          print("login as a hr");
-
-          Get.offAllNamed(AppRoutes.MAIN_SHELL);
-
-          isLoginLoading = false;
-          update();
-          return;
-        }
-      } catch (e) {
-        print(" HR is not login");
-      }
-
-      // EMPLOYEE LOGIN
-      final data = await ApiService.login(email: email, password: password);
-      final token = data["token"];
-      final employee = data["employee"] ?? data["user"] ?? data["data"];
-      if (token != null) {
-        await ApiService.saveToken(token);
-      }
-
-      if (employee != null) {
-        await ApiService.saveEmployee(employee);
-      }
-
-      print("login as employee");
-
-      Get.offAllNamed("/home");
-    } catch (e) {
-      _showError("Login failed");
+    // try {
+    final data = await ApiService.login(email: email, password: password);
+    final token = data["token"];
+    final employee = data["employee"] ?? data["user"] ?? data["data"];
+    if (token != null) {
+      await ApiService.saveToken(token);
     }
+    if (employee != null) {
+      await ApiService.saveEmployee(employee);
+    }
+
+    print("login as employee");
+    if (data['employee']['role'] == 'employee') {
+      Get.offAllNamed("/home");
+    } else {
+      // Get.offAll(() => MainShellView());
+      Get.offAllNamed(AppRoutes.MAIN_SHELL);
+    }
+    // Get.offAllNamed("/home");
+    // } catch (e) {
+    // _showError("Login failed");
+    // }
 
     isLoginLoading = false;
     update();

@@ -1,3 +1,4 @@
+import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/main_shell_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -17,11 +18,11 @@ class HomeView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ──────────────────────────────────────
+              // ── Header
               _Header(),
               const SizedBox(height: 24),
 
-              // ── Stats Grid ──────────────────────────────────
+              // ── Stats Grid
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -47,8 +48,8 @@ class HomeView extends StatelessWidget {
                             title: 'Total Employees',
                             value: c.totalEmployees.toString(),
                             icon: Icons.people_rounded,
-                            color: Colors.orange,
-                            bgColor: Colors.orange.withOpacity(0.1),
+                            color: AppColors.primary,
+                            bgColor: AppColors.background.withOpacity(0.1),
                           ),
                           _StatCard(
                             title: 'Active',
@@ -80,7 +81,7 @@ class HomeView extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // ── Quick Actions ────────────────────────────────
+              // ── Quick Actions
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -100,7 +101,7 @@ class HomeView extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // ── Today's Snapshot ─────────────────────────────
+              // ── Today's Snapshot
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _TodaySnapshot(controller: c),
@@ -115,7 +116,7 @@ class HomeView extends StatelessWidget {
   }
 }
 
-// ── Header Widget ─────────────────────────────────────────────
+// ── Header Widget
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -123,7 +124,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.orange, Colors.orangeAccent],
+          colors: [Color(0xFF6C5CE7), Color.fromARGB(255, 73, 68, 107)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -132,6 +133,7 @@ class _Header extends StatelessWidget {
           bottomRight: Radius.circular(28),
         ),
       ),
+      // color: Color(0xFF6C5CE7)
       child: Row(
         children: [
           Expanded(
@@ -205,7 +207,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textSecondary,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -244,7 +246,7 @@ class _StatCard extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.white70,
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -268,13 +270,13 @@ class _QuickActionsGrid extends StatelessWidget {
       _ActionItem(
         label: 'Employees',
         icon: Icons.people_rounded,
-        color: Colors.orange,
+        color: AppColors.primary,
         onTap: () => controller.changePage(1),
       ),
       _ActionItem(
         label: 'Leave Requests',
         icon: Icons.event_note_rounded,
-        color: Colors.orangeAccent,
+        color: AppColors.secondary,
         onTap: () => controller.changePage(2),
       ),
       _ActionItem(
@@ -368,39 +370,39 @@ class _TodaySnapshot extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<MainShellController>(
       builder: (_) {
-      final pending = controller.leaveRequests
-          // .where((l) => l.status == 'Pending')
-          .take(3)
-          .toList();
+        final pending = controller.leaveRequests
+            .where((l) => l.status == 'Pending')
+            .take(3)
+            .toList();
 
-      if (pending.isEmpty) return const SizedBox.shrink();
+        if (pending.isEmpty) return const SizedBox.shrink();
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Pending Approvals',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              TextButton(
-                onPressed: () => controller.changePage(2),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.orange,
-                  padding: EdgeInsets.zero,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Pending Approvals',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                child: const Text('View All →'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...pending.map((leave) => _MiniLeaveCard(leave: leave)),
-        ],
-      );
+                TextButton(
+                  onPressed: () => controller.changePage(2),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.orange,
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: const Text('View All →'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...pending.map((leave) => _MiniLeaveCard(leave: leave)),
+          ],
+        );
       },
     );
   }
@@ -417,11 +419,11 @@ class _MiniLeaveCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.textSecondary,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: AppColors.textPrimary.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -431,12 +433,12 @@ class _MiniLeaveCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor: Colors.orange.withOpacity(0.1),
+            backgroundColor: AppColors.primary.withOpacity(0.1),
             child: Text(
               leave.employeeName[0],
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.orange,
+                color: AppColors.primary,
                 fontSize: 16,
               ),
             ),
@@ -455,7 +457,10 @@ class _MiniLeaveCard extends StatelessWidget {
                 ),
                 Text(
                   '${leave.leaveType} • ${leave.numberOfDays} day${leave.numberOfDays > 1 ? 's' : ''}',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),

@@ -51,7 +51,7 @@ class _BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.orange,
+        color: Color(0xFF6C5CE7),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -158,7 +158,7 @@ class _NavItem extends StatelessWidget {
               children: [
                 Icon(
                   isActive ? activeIcon : icon,
-                  color: isActive ? Colors.orange : Colors.white,
+                  color: isActive ? Color(0xFF6C5CE7) : Colors.white,
                   size: 24,
                 ),
                 if (badge != null)
@@ -193,7 +193,7 @@ class _NavItem extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.orange,
+                  color: Color(0xFF6C5CE7),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
