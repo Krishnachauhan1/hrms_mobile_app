@@ -277,7 +277,7 @@ class HRDashboardView extends GetView<HRDashboardController> {
           padding: const EdgeInsets.all(24),
           child: Center(
             child: Text(
-              'No employees currently logged in',
+              'No employees currently logged in.',
               style: TextStyle(color: Colors.white70),
             ),
           ),
