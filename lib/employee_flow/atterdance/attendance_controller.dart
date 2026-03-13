@@ -389,9 +389,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         filePath: photoPath,
         fileField: 'photo',
       );
-
-      print('🟢 ✅ $response');
-
       attendanceResult = response as Map<String, dynamic>;
       markedTime = TimeOfDay.now().format(Get.context!);
       isCheckedIn = true;
