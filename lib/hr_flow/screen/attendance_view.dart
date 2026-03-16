@@ -11,11 +11,17 @@ class AttendanceView extends GetView<AttendanceController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(),
-      floatingActionButton: _AddFAB(controller: controller),
-      body: Obx(
-        () => controller.viewMode.value == 'calendar'
-            ? _CalendarView(controller: controller)
-            : _ListView(controller: controller),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => controller.showAddEditDialog(),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add', style: TextStyle(fontWeight: FontWeight.w600)),
+      ),
+      body: GetBuilder<AttendanceController>(
+        builder: (c) => c.viewMode == 'calendar'
+            ? _CalendarView(controller: c)
+            : _ListView(controller: c),
       ),
     );
   }
@@ -25,18 +31,15 @@ class AttendanceView extends GetView<AttendanceController> {
       title: const Text('Attendance'),
       automaticallyImplyLeading: false,
       actions: [
-        // Toggle view mode
-        Obx(
-          () => IconButton(
-            tooltip: controller.viewMode.value == 'list'
-                ? 'Calendar View'
-                : 'List View',
+        GetBuilder<AttendanceController>(
+          builder: (c) => IconButton(
+            tooltip: c.viewMode == 'list' ? 'Calendar View' : 'List View',
             icon: Icon(
-              controller.viewMode.value == 'list'
+              c.viewMode == 'list'
                   ? Icons.calendar_month_rounded
                   : Icons.list_alt_rounded,
             ),
-            onPressed: controller.toggleViewMode,
+            onPressed: c.toggleViewMode,
           ),
         ),
       ],
@@ -44,24 +47,7 @@ class AttendanceView extends GetView<AttendanceController> {
   }
 }
 
-// ─── FAB ──────────────────────────────────────────────────────
-class _AddFAB extends StatelessWidget {
-  final AttendanceController controller;
-  const _AddFAB({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton.extended(
-      onPressed: () => controller.showAddEditDialog(),
-      backgroundColor: AppColors.primary,
-      foregroundColor: Colors.white,
-      icon: const Icon(Icons.add_rounded),
-      label: const Text('Add', style: TextStyle(fontWeight: FontWeight.w600)),
-    );
-  }
-}
-
-// ─── LIST VIEW ────────────────────────────────────────────────
+//List View
 class _ListView extends StatelessWidget {
   final AttendanceController controller;
   const _ListView({required this.controller});
@@ -79,80 +65,82 @@ class _ListView extends StatelessWidget {
   }
 }
 
-// ─── Date Navigator ───────────────────────────────────────────
+// Date Navigator
 class _DateNavigator extends StatelessWidget {
   final AttendanceController controller;
   const _DateNavigator({required this.controller});
 
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      child: Obx(() {
-        final d = controller.selectedDate.value;
+    return GetBuilder<AttendanceController>(
+      builder: (c) {
+        final d = c.selectedDate;
         final isToday = _isSameDay(d, DateTime.now());
-        return Row(
-          children: [
-            _NavBtn(
-              icon: Icons.chevron_left_rounded,
-              onTap: controller.prevDay,
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _pickDate(context, controller),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.07),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.calendar_today_rounded,
-                            color: AppColors.primary,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _formatDate(d),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
+        return Container(
+          color: Colors.white,
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: Row(
+            children: [
+              _NavBtn(icon: Icons.chevron_left_rounded, onTap: c.prevDay),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _pickDate(context, c),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.calendar_today_rounded,
                               color: AppColors.primary,
+                              size: 16,
                             ),
-                          ),
-                        ],
-                      ),
-                      if (isToday)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 2),
-                          child: Text(
-                            'Today',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500,
+                            const SizedBox(width: 6),
+                            Text(
+                              _formatDate(d),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: AppColors.primary,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                    ],
+                        if (isToday)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2),
+                            child: Text(
+                              'Today',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            _NavBtn(
-              icon: Icons.chevron_right_rounded,
-              onTap: controller.nextDay,
-              disabled: _isSameDay(d, DateTime.now()),
-            ),
-          ],
+              _NavBtn(
+                icon: Icons.chevron_right_rounded,
+                onTap: c.nextDay,
+                disabled: _isSameDay(d, DateTime.now()),
+              ),
+            ],
+          ),
         );
-      }),
+      },
     );
   }
 
@@ -175,13 +163,10 @@ class _DateNavigator extends StatelessWidget {
     return '${days[d.weekday - 1]}, ${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
   Future<void> _pickDate(BuildContext ctx, AttendanceController c) async {
     final picked = await showDatePicker(
       context: ctx,
-      initialDate: c.selectedDate.value,
+      initialDate: c.selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
@@ -213,12 +198,14 @@ class _NavBtn extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 6),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: disabled ? Colors.grey.shade100 : Colors.grey.shade100,
+          color: disabled
+              ? Colors.grey.shade200
+              : AppColors.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
-          color: disabled ? Colors.grey.shade300 : Colors.white70,
+          color: disabled ? AppColors.primary : AppColors.primary,
           size: 22,
         ),
       ),
@@ -226,36 +213,34 @@ class _NavBtn extends StatelessWidget {
   }
 }
 
-// ─── Employee Filter Bar ─────────────────
+// ── Employee Filter Bar ───────────────────────────────────────
 class _EmployeeFilterBar extends StatelessWidget {
   final AttendanceController controller;
   const _EmployeeFilterBar({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => Container(
+    return GetBuilder<AttendanceController>(
+      builder: (c) => Container(
         color: Colors.white,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              // "All" chip
               _EmpChip(
                 label: 'All',
-
-                isSelected: controller.selectedEmployeeId.value.isEmpty,
-                onTap: () => controller.setEmployeeFilter(''),
+                isSelected: c.selectedEmployeeId.isEmpty,
+                onTap: () => c.setEmployeeFilter(''),
               ),
               const SizedBox(width: 8),
-              ...controller.employees.map(
+              ...c.employees.map(
                 (emp) => Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: _EmpChip(
                     label: emp.name.split(' ').first,
-                    isSelected: controller.selectedEmployeeId.value == emp.id,
-                    onTap: () => controller.setEmployeeFilter(emp.id),
+                    isSelected: c.selectedEmployeeId == emp.id,
+                    onTap: () => c.setEmployeeFilter(emp.id),
                     initial: emp.name[0],
                   ),
                 ),
@@ -320,7 +305,7 @@ class _EmpChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: Colors.white,
+                color: isSelected ? Colors.white : Colors.grey.shade700,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 fontSize: 13,
               ),
@@ -332,51 +317,57 @@ class _EmpChip extends StatelessWidget {
   }
 }
 
+// ── Stats Row ─────────────────────────────────────────────────
 class _StatsRow extends StatelessWidget {
   final AttendanceController controller;
   const _StatsRow({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      // Direct read of RxList so GetX tracks changes
-      final _ = controller.records.length;
-      return Container(
+    return GetBuilder<AttendanceController>(
+      builder: (c) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         color: Colors.orange.withOpacity(0.05),
         child: Row(
           children: [
             _StatBox(
+              'Days',
+              c.totalAttendanceDays,
+              Colors.purple,
+              Icons.calendar_today,
+            ),
+            const SizedBox(width: 8),
+            _StatBox(
               'Present',
-              controller.presentCount,
+              c.presentCount,
               const Color(0xFF27AE60),
               Icons.check_circle_rounded,
             ),
             const SizedBox(width: 8),
             _StatBox(
               'Absent',
-              controller.absentCount,
+              c.absentCount,
               const Color(0xFFE74C3C),
               Icons.cancel_rounded,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 8, height: 10),
             _StatBox(
               'On Leave',
-              controller.onLeaveCount,
+              c.onLeaveCount,
               const Color(0xFFF39C12),
               Icons.event_busy_rounded,
             ),
             const SizedBox(width: 8),
             _StatBox(
               'Half Day',
-              controller.halfDayCount,
+              c.halfDayCount,
               const Color(0xFF2980B9),
               Icons.timelapse_rounded,
             ),
           ],
         ),
-      );
-    });
+      ),
+    );
   }
 }
 
@@ -412,7 +403,7 @@ class _StatBox extends StatelessWidget {
               label,
               style: const TextStyle(
                 fontSize: 10,
-                color: Colors.greenAccent,
+                color: AppColors.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -423,53 +414,56 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-// ─── Attendance List ─────────────────────────
+// ── Attendance List ───────────────────────────────────────────
 class _AttendanceList extends StatelessWidget {
   final AttendanceController controller;
   const _AttendanceList({required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      // Read .records directly so GetX RxList tracks this Obx
-      final _ = controller.records.length;
-      final records = controller.recordsForDate;
-      if (records.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.event_available_rounded,
-                size: 64,
-                color: Colors.grey.shade200,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'No records for this date',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () => controller.showAddEditDialog(),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Add Attendance'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-              ),
-            ],
-          ),
+    return GetBuilder<AttendanceController>(
+      builder: (c) {
+        final records = c.recordsForDate;
+        if (records.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.event_available_rounded,
+                  size: 64,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'No records for this date',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => c.showAddEditDialog(),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Add Attendance'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+          itemCount: records.length,
+          itemBuilder: (ctx, i) =>
+              _AttendanceCard(record: records[i], controller: c),
         );
-      }
-      return ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-        itemCount: records.length,
-        itemBuilder: (ctx, i) =>
-            _AttendanceCard(record: records[i], controller: controller),
-      );
-    });
+      },
+    );
   }
 }
 
+// ── Attendance Card ───────────────────────────────────────────
 class _AttendanceCard extends StatelessWidget {
   final Attendance record;
   final AttendanceController controller;
@@ -477,6 +471,8 @@ class _AttendanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = controller.statusColor(record.status);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -494,41 +490,17 @@ class _AttendanceCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            // Avatar + status bar
-            Stack(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      record.employeeName[0],
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              child: Text(
+                record.employeeName[0],
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
                 ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
             const SizedBox(width: 12),
             // Info
@@ -547,22 +519,37 @@ class _AttendanceCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      // Status badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: color.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(
-                          record.status,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              record.status,
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -570,7 +557,7 @@ class _AttendanceCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     record.department,
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
                   if (record.checkInTime != null || record.checkOutTime != null)
                     Padding(
@@ -619,9 +606,9 @@ class _AttendanceCard extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         '📝 ${record.remarks}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: Colors.white,
+                          color: Colors.grey.shade600,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -630,15 +617,11 @@ class _AttendanceCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            // Actions column
+            // Action buttons
             Column(
               children: [
-                // Edit button
                 GestureDetector(
-                  onTap: () async {
-                    // Dialog open hone ka wait karo
-                    controller.showAddEditDialog(existing: record);
-                  },
+                  onTap: () => controller.showAddEditDialog(existing: record),
                   child: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
@@ -653,7 +636,6 @@ class _AttendanceCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                // History button
                 GestureDetector(
                   onTap: () {
                     final emp = controller.employees.firstWhere(
@@ -665,7 +647,7 @@ class _AttendanceCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: Colors.white70.withOpacity(0.1),
+                      color: AppColors.primary.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -732,7 +714,7 @@ class _TimeChip extends StatelessWidget {
   }
 }
 
-// ─── CALENDAR VIEW ───────────────────────────
+// ── Calendar View ─────────────────────────────────────────────
 class _CalendarView extends StatefulWidget {
   final AttendanceController controller;
   const _CalendarView({required this.controller});
@@ -752,7 +734,6 @@ class _CalendarViewState extends State<_CalendarView> {
     final now = DateTime.now();
     _calYear = now.year;
     _calMonth = now.month;
-    // Default to first employee
     if (widget.controller.employees.isNotEmpty) {
       _selectedEmpId = widget.controller.employees.first.id;
     }
@@ -760,248 +741,252 @@ class _CalendarViewState extends State<_CalendarView> {
 
   @override
   Widget build(BuildContext context) {
-    final employees = widget.controller.employees;
-    final selectedEmp = employees.isNotEmpty
-        ? employees.firstWhere(
-            (e) => e.id == _selectedEmpId,
-            orElse: () => employees.first,
-          )
-        : null;
+    return GetBuilder<AttendanceController>(
+      builder: (c) {
+        final employees = c.employees;
+        final selectedEmp = employees.isNotEmpty
+            ? employees.firstWhere(
+                (e) => e.id == _selectedEmpId,
+                orElse: () => employees.first,
+              )
+            : null;
 
-    return Obx(() {
-      // Direct read of RxList so Obx rebuilds when records change
-      final _ = widget.controller.records.length;
-      final statusMap = selectedEmp != null
-          ? widget.controller.calendarStatusForEmployee(
-              _selectedEmpId,
-              _calYear,
-              _calMonth,
-            )
-          : <DateTime, String>{};
+        final statusMap = selectedEmp != null
+            ? c.calendarStatusForEmployee(_selectedEmpId, _calYear, _calMonth)
+            : <DateTime, String>{};
 
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-        child: Column(
-          children: [
-            // Employee selector
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 14),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Row(
-                  children: employees.map((emp) {
-                    final isSel = emp.id == _selectedEmpId;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedEmpId = emp.id),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.all(4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSel ? AppColors.primary : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 12,
-                              backgroundColor: isSel
-                                  ? Colors.white.withOpacity(0.3)
-                                  : AppColors.primary.withOpacity(0.12),
-                              child: Text(
-                                emp.name[0],
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSel ? Colors.white : AppColors.primary,
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+          child: Column(
+            children: [
+              // Employee selector
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: employees.map((emp) {
+                      final isSel = emp.id == _selectedEmpId;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedEmpId = emp.id),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.all(4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSel
+                                ? AppColors.primary
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 12,
+                                backgroundColor: isSel
+                                    ? Colors.white.withOpacity(0.3)
+                                    : AppColors.primary.withOpacity(0.12),
+                                child: Text(
+                                  emp.name[0],
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSel
+                                        ? Colors.white
+                                        : AppColors.primary,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              emp.name.split(' ').first,
-                              style: TextStyle(
-                                color: isSel ? Colors.white : Colors.white70,
-                                fontWeight: isSel
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                fontSize: 13,
+                              const SizedBox(width: 6),
+                              Text(
+                                emp.name.split(' ').first,
+                                style: TextStyle(
+                                  color: isSel
+                                      ? Colors.white
+                                      : Colors.grey.shade700,
+                                  fontWeight: isSel
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  fontSize: 13,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
-            ),
 
-            // Calendar card
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Month nav
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => setState(() {
-                            if (_calMonth == 1) {
-                              _calMonth = 12;
-                              _calYear--;
-                            } else {
-                              _calMonth--;
-                            }
-                          }),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.chevron_left_rounded,
-                              size: 20,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            _monthName(_calMonth) + ' $_calYear',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            final now = DateTime.now();
-                            if (_calYear < now.year ||
-                                (_calYear == now.year &&
-                                    _calMonth < now.month)) {
-                              setState(() {
-                                if (_calMonth == 12) {
-                                  _calMonth = 1;
-                                  _calYear++;
-                                } else {
-                                  _calMonth++;
-                                }
-                              });
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.chevron_right_rounded,
-                              size: 20,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ),
-                      ],
+              // Calendar card
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
-                  ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Month navigation
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => setState(() {
+                              if (_calMonth == 1) {
+                                _calMonth = 12;
+                                _calYear--;
+                              } else {
+                                _calMonth--;
+                              }
+                            }),
 
-                  // Day headers
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      children: ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d) {
-                        return Expanded(
-                          child: Center(
-                            child: Text(
-                              d,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white70,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.chevron_left_rounded,
+                                size: 20,
+                                color: Colors.black,
                               ),
                             ),
                           ),
-                        );
-                      }).toList(),
+                          Expanded(
+                            child: Text(
+                              '${_monthName(_calMonth)} $_calYear',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              final now = DateTime.now();
+                              if (_calYear < now.year ||
+                                  (_calYear == now.year &&
+                                      _calMonth < now.month)) {
+                                setState(() {
+                                  if (_calMonth == 12) {
+                                    _calMonth = 1;
+                                    _calYear++;
+                                  } else {
+                                    _calMonth++;
+                                  }
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 20,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
 
-                  // Calendar grid
-                  _CalendarGrid(
-                    year: _calYear,
-                    month: _calMonth,
-                    statusMap: statusMap,
-                    onDayTap: (date) {
-                      widget.controller.changeDate(date);
-                      widget.controller.setEmployeeFilter(_selectedEmpId);
-                      widget.controller.toggleViewMode();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Legend
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _LegendDot('Present', const Color(0xFF27AE60)),
-                        const SizedBox(width: 16),
-                        _LegendDot('Absent', const Color(0xFFE74C3C)),
-                        const SizedBox(width: 16),
-                        _LegendDot('Leave', const Color(0xFFF39C12)),
-                        const SizedBox(width: 16),
-                        _LegendDot('Half Day', const Color(0xFF2980B9)),
-                      ],
+                    // Day headers
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                            .map(
+                              (d) => Expanded(
+                                child: Center(
+                                  child: Text(
+                                    d,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+
+                    // Calendar grid
+                    _CalendarGrid(
+                      year: _calYear,
+                      month: _calMonth,
+                      statusMap: statusMap,
+                      onDayTap: (date) {
+                        c.changeDate(date);
+                        c.setEmployeeFilter(_selectedEmpId);
+                        c.toggleViewMode();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Legend
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _LegendDot('Present', const Color(0xFF27AE60)),
+                          const SizedBox(width: 16),
+                          _LegendDot('Absent', const Color(0xFFE74C3C)),
+                          const SizedBox(width: 16),
+                          _LegendDot('Leave', const Color(0xFFF39C12)),
+                          const SizedBox(width: 16),
+                          _LegendDot('Half Day', const Color(0xFF2980B9)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Monthly stats
-            if (selectedEmp != null)
-              _MonthlyStats(statusMap: statusMap, empName: selectedEmp.name),
-          ],
-        ),
-      ); // end SingleChildScrollView
-    }); // end Obx
+              if (selectedEmp != null)
+                _MonthlyStats(statusMap: statusMap, empName: selectedEmp.name),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   String _monthName(int m) {
@@ -1024,7 +1009,7 @@ class _CalendarViewState extends State<_CalendarView> {
   }
 }
 
-// ─── Calendar Grid ──────────────────────────
+// ── Calendar Grid ─────────────────────────────────────────────
 class _CalendarGrid extends StatelessWidget {
   final int year;
   final int month;
@@ -1042,7 +1027,7 @@ class _CalendarGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final firstDay = DateTime(year, month, 1);
     final daysInMonth = DateTime(year, month + 1, 0).day;
-    final startWeekday = firstDay.weekday; // 1=Mon … 7=Sun
+    final startWeekday = firstDay.weekday;
     final today = DateTime.now();
     final totalCells = startWeekday - 1 + daysInMonth;
     final rows = (totalCells / 7).ceil();
@@ -1081,9 +1066,7 @@ class _CalendarGrid extends StatelessWidget {
                           ? AppColors.primary
                           : color?.withOpacity(0.15) ?? Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
-                      border: isToday
-                          ? null
-                          : color != null
+                      border: (!isToday && color != null)
                           ? Border.all(color: color.withOpacity(0.3))
                           : null,
                     ),
@@ -1094,14 +1077,14 @@ class _CalendarGrid extends StatelessWidget {
                           '$day',
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight: isToday || color != null
+                            fontWeight: (isToday || color != null)
                                 ? FontWeight.w700
                                 : FontWeight.normal,
                             color: isToday
                                 ? Colors.white
                                 : isFuture
                                 ? Colors.grey.shade300
-                                : isWeekend && color == null
+                                : (isWeekend && color == null)
                                 ? Colors.grey.shade400
                                 : color ?? Colors.black87,
                           ),
@@ -1161,7 +1144,7 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: Colors.white70),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
         ),
       ],
     );
@@ -1243,7 +1226,7 @@ class _MonthlyStat extends StatelessWidget {
           ),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: Colors.white70),
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
           ),
           const SizedBox(height: 6),
           ClipRRect(

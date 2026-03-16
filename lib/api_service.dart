@@ -157,7 +157,6 @@ class ApiService {
   }
 
   // Auth calls
-
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -165,7 +164,6 @@ class ApiService {
     final url = Uri.parse('${Apis.baseUrl}${Apis.login}');
     final headers = await _buildHeaders(withAuth: false);
     final body = jsonEncode({'email': email, 'password': password});
-
     try {
       final response = await http
           .post(url, headers: headers, body: body)
@@ -179,8 +177,6 @@ class ApiService {
       );
     }
   }
-
-  // Generic CRUD helpers
 
   static Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
@@ -275,40 +271,26 @@ class ApiService {
   static Future<dynamic> postMultipart(
     String endpoint, {
     required Map<String, String> fields,
-    String? filePath, // optional — sirf photo ho to pass karo
-    String fileField =
-        'photo', // API ka field name — apne backend se match karo
+    String? filePath,
+    String fileField = 'photo',
   }) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final token = await getToken();
-
-    print('[API] MULTIPART POST $url');
-    print('[API] Fields: $fields');
-    if (filePath != null) print('[API] File: $filePath');
-
+    if (filePath != null) print('File.......... $filePath');
     try {
       final request = http.MultipartRequest('POST', url)
         ..headers['Accept'] = 'application/json'
         ..fields.addAll(fields);
-
-      // Auth token add karo
       if (token != null && token.isNotEmpty) {
         request.headers['Authorization'] = 'Bearer $token';
       }
-
-      // Photo file attach karo agar path diya ho
       if (filePath != null && filePath.isNotEmpty) {
         request.files.add(
           await http.MultipartFile.fromPath(fileField, filePath),
         );
       }
-
       final streamed = await request.send().timeout(_requestTimeout);
       final response = await http.Response.fromStream(streamed);
-
-      print('[API] Status: ${response.statusCode}');
-      print('[API] Body:   ${response.body}');
-
       return _handleResponse(response);
     } on TimeoutException {
       throw ApiException(
@@ -316,29 +298,22 @@ class ApiService {
         message: 'Request timed out. Please try again.',
       );
     } catch (e) {
-      print('[API] Multipart error: $e');
       rethrow;
     }
   }
 
   //  error handler
   static Map<String, dynamic> _handleResponse(http.Response response) {
-    // print('API Status: ${response.statusCode}');
-    // print('API Body:   ${response.body}');
-
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return decoded;
     }
-
     if (response.statusCode == 401) {
       throw ApiException(
         statusCode: 401,
         message: decoded['message'] ?? 'Session expired.',
       );
     }
-
     if (response.statusCode == 422) {
       final errors = decoded['errors'] as Map<String, dynamic>?;
       final firstError = errors?.values.first;
@@ -350,7 +325,6 @@ class ApiService {
         message: message ?? 'Validation error',
       );
     }
-
     throw ApiException(
       statusCode: response.statusCode,
       message: decoded['message'] ?? 'Something went wrong',
@@ -363,7 +337,6 @@ class ApiException implements Exception {
   final int statusCode;
   final String message;
   ApiException({required this.statusCode, required this.message});
-
   @override
   String toString() => 'ApiException($statusCode): $message';
 }

@@ -55,21 +55,21 @@ class SalaryDetail {
       deductions: toDouble(json['deductions'] ?? 0),
       currentMonth: json['current_month'] as String? ?? '',
 
-      // Allowances list { "name": "House", "amount": 5000 }
+      // Allowances list
       allowances:
           (json['allowances'] as List<dynamic>?)
               ?.map((e) => e as Map<String, dynamic>)
               .toList() ??
           [],
 
-      // Deduction items { "name": "Tax", "amount": 4500 }
+      // Deduction items
       deductionItems:
           (json['deduction_items'] as List<dynamic>?)
               ?.map((e) => e as Map<String, dynamic>)
               .toList() ??
           [],
 
-      // Payroll history { "month": "Jan 2026", "net_salary": 40500, "status": "paid"
+      // Payroll history
       payrollHistory:
           (json['payroll_history'] as List<dynamic>?)
               ?.map((e) => e as Map<String, dynamic>)
@@ -103,38 +103,25 @@ class SalaryController extends GetxController {
     employeeId =
         ApiService.extractEmployeeId(authController.employee) ??
         await ApiService.getEmployeeId();
-
-    print('Salary onInit employeeId========== $employeeId');
-
     if (employeeId == null) {
       errorMessage = 'Employee ID not found. Please login again.';
       _safeUpdate();
       return;
     }
-
     await fetchSalary();
   }
 
   // Api GET /employees/{id}/salary
-
   Future<void> fetchSalary() async {
     final id = employeeId;
     if (id == null) return;
-    print('Api Get salary details');
-    print('Api URL=========== ${Apis.baseUrl}${Apis.employeeSalary(id)}');
-
     isLoading = true;
     errorMessage = null;
     _safeUpdate();
 
     try {
       // Step 1: API call — GET, no body needed
-      final dynamic response = await ApiService.get(
-        Apis.employeeSalary(id),
-      );
-      print('get API ✅ Status......... 200');
-      print('API Raw response: $response');
-
+      final dynamic response = await ApiService.get(Apis.employeeSalary(id));
       // Step 2: Parse — handle both flat and nested response
       Map<String, dynamic> data = {};
       if (response is Map<String, dynamic>) {
@@ -147,38 +134,19 @@ class SalaryController extends GetxController {
       salaryDetail = SalaryDetail.fromJson(data);
 
       // Step 4: Log parsed values
-      print('....API  Parsed.............');
-      print('....monthly_salary.........${salaryDetail!.monthlySalary}');
-      print('....gross_salary...........${salaryDetail!.grossSalary}');
-      print('.....net_salary............${salaryDetail!.netSalary}');
-      print('.....deductions.............${salaryDetail!.deductions}');
-      print('.....overtime_allowed.......${salaryDetail!.overtimeAllowed}');
-      print('.....overtime_rate/hr.......${salaryDetail!.overtimeRatePerHour}');
-      print('....allowances count.......${salaryDetail!.allowances.length}');
-      print(
-        '.........deduction_items count...${salaryDetail!.deductionItems.length}',
-      );
-      print(
-        '......payroll_history count......${salaryDetail!.payrollHistory.length}',
-      );
-
       isLoading = false;
       _safeUpdate();
     } on ApiException catch (e) {
-      print('API ❌ ApiException ${e.statusCode}: ${e.message}');
       isLoading = false;
       errorMessage = e.message;
       _safeUpdate();
       _showError('Failed to load salary: ${e.message}');
     } catch (e) {
-      print('API ❌ Unknown error: $e');
       isLoading = false;
       errorMessage = 'Network error. Could not load salary.';
       _safeUpdate();
       _showError('Network error. Try again.');
     }
-
-    print('.......................');
   }
 
   //  API PUT /employees/{id}/salary
@@ -193,12 +161,8 @@ class SalaryController extends GetxController {
       _showError('Employee ID not found. Please login again.');
       return;
     }
-    print('API PUT update salary');
-    print('API  URL........ ${Apis.baseUrl}${Apis.employeeSalary(id)}');
-
     //  Validation
     if (monthlySalary <= 0) {
-      print('API  ❌ Validation: salary must be > 0');
       _showError('Monthly salary must be greater than 0');
       return;
     }
@@ -208,9 +172,6 @@ class SalaryController extends GetxController {
       'overtime_allowed': overtimeAllowed,
       'overtime_rate_per_hour': overtimeRatePerHour,
     };
-
-    print('API EMPLOYEE SALRAY Body..........$body');
-
     isUpdating = true;
     _safeUpdate();
 
@@ -219,35 +180,25 @@ class SalaryController extends GetxController {
         Apis.employeeSalary(id),
         body,
       );
-      print('API EMPLOYEE SALARY Status......... 200');
-      print('EMOLOYEE SALARY Response...... $response');
-
       isUpdating = false;
       _safeUpdate();
-
       _showSuccess('Salary updated successfully!');
 
       // Refresh to show updated values
-      print('│ [API 2] Refreshing salary data...');
+      print('Refreshing salary data...');
       await fetchSalary();
     } on ApiException catch (e) {
-      print('│ [API 2] ❌ ApiException ${e.statusCode}: ${e.message}');
       isUpdating = false;
       _safeUpdate();
       _showError(e.message);
     } catch (e) {
-      print('│ [API 2] ❌ Unknown error: $e');
       isUpdating = false;
       _safeUpdate();
       _showError('Network error. Check your connection.');
     }
-
-    print('.................................................');
   }
 
   // Format helpers (controller owns formatting logic)
-
-  // Format number → "45,000.00"
   String formatAmount(double amount) {
     final parts = amount.toStringAsFixed(2).split('.');
     final intPart = parts[0].replaceAllMapped(

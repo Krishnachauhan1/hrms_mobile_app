@@ -1,3 +1,4 @@
+import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/salary_management_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -52,14 +53,14 @@ class SalaryManagementView extends GetView<SalaryManagementController> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Colors.orange, Color.fromARGB(255, 155, 113, 49)],
+          colors: [Color(0xFF6C5CE7), Color(0xFF5F4FD1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.3),
+            color: AppColors.primary.withOpacity(0.3),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -115,7 +116,8 @@ class SalaryManagementView extends GetView<SalaryManagementController> {
       child: Column(
         children: controller.departments.map((dept) {
           final salary = controller.getDepartmentSalary(dept);
-          final pct = salary / controller.totalSalaryExpense;
+          final total = controller.totalSalaryExpense;
+          final pct = total == 0 ? 0.0 : salary / total;
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Column(
@@ -132,7 +134,7 @@ class SalaryManagementView extends GetView<SalaryManagementController> {
                       'Rs. ${NumberFormat('#,##,###').format(salary)}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -145,7 +147,7 @@ class SalaryManagementView extends GetView<SalaryManagementController> {
                     minHeight: 8,
                     backgroundColor: Colors.grey.shade100,
                     valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.orange,
+                      AppColors.primary,
                     ),
                   ),
                 ),
@@ -185,16 +187,18 @@ class SalaryManagementView extends GetView<SalaryManagementController> {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: Text(
-                    emp.name[0].toUpperCase(),
+                    ((emp["name"] ?? "").toString().isNotEmpty)
+                        ? emp["name"].toString()[0].toUpperCase()
+                        : "__",
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Colors.orange,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -205,17 +209,17 @@ class SalaryManagementView extends GetView<SalaryManagementController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      emp.name,
+                      (emp['name'] ?? '').toString(),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
                     ),
                     Text(
-                      '${emp.designation} · ${emp.department}',
+                      '${emp['designation'] ?? ''} · ${emp['department'] ?? ''}',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.orangeAccent,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -225,11 +229,11 @@ class SalaryManagementView extends GetView<SalaryManagementController> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Rs. ${NumberFormat('#,##,###').format(emp.salary)}',
+                    'Rs. ${NumberFormat('#,##,###').format(double.tryParse(emp['monthly_salary'].toString()) ?? 0)}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: Colors.orange,
+                      color: AppColors.primary,
                     ),
                   ),
                   const Text(

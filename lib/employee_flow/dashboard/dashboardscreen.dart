@@ -1,4 +1,4 @@
-import 'package:employee_app/employee_flow/atterdance/attendance_screen.dart';
+import 'package:employee_app/employee_flow/attendance/attendance_screen.dart';
 import 'package:employee_app/employee_flow/leaves/leavescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

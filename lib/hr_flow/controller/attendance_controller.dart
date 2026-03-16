@@ -3,43 +3,164 @@ import 'package:employee_app/hr_flow/models/attendance_model.dart';
 import 'package:employee_app/hr_flow/models/employee_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../api_service.dart';
+import '../../apis.dart';
 
 class AttendanceController extends GetxController {
   late final MainShellController _shell;
 
-  // Reactive State
-  final selectedDate = DateTime.now().obs;
-  final selectedEmployeeId = ''.obs;
-  final viewMode = 'list'.obs;
-  final records = <Attendance>[].obs;
+  DateTime selectedDate = DateTime.now();
+  String selectedEmployeeId = '';
+  String selectedEmpId = "";
+  String viewMode = 'list';
+  List<Attendance> records = [];
+  Employee? emp;
+
+  int? monthlyDays;
+  double? monthlyHours;
+  int? monthlyMonth;
+  int totalPresent = 0;
+  int totalAbsent = 0;
+  int totalLeave = 0;
+  int totalAttendanceDays = 0;
+  double totalWorkHours = 0;
+  int totalEmployeeId = 0;
+  String? currentStatus;
+  String? currentEmployeeName;
+  int? currentEmployeeId;
 
   @override
   void onInit() {
     super.onInit();
     _shell = Get.find<MainShellController>();
-    records.assignAll(_shell.attendanceRecords);
+    fetchTodayAttendance();
+    fetchAttendanceTotal();
+  }
+
+  void loadMonthly() {
+    fetchMonthlyAttendance(selectedDate.month, selectedDate.year);
+  }
+
+  // Today
+  Future<void> fetchTodayAttendance() async {
+    try {
+      final res = await ApiService.get(Apis.attendanceToday);
+      print("attendance res ======== $res");
+
+      final String dateStr = res["date"];
+      final DateTime apiDate = DateTime.parse(dateStr);
+      selectedDate = apiDate;
+      print("selectedDate ================ $selectedDate");
+      List list = res["data"];
+      records.clear();
+      int? firstId;
+      for (var e in list) {
+        firstId ??= e["employee_id"];
+        print('employee id is==========${e["employee_id"]}');
+        records.add(
+          Attendance(
+            id: "${e["employee_id"]}_$dateStr",
+            employeeId: e["employee_id"].toString(),
+            employeeName: e["employee_name"] ?? "__",
+            department: e["department"] ?? "",
+            date: apiDate,
+            status: _mapStatus(e["status"]),
+            checkInTime: e["login_at"] != null
+                ? DateTime.parse(e["login_at"])
+                : null,
+            checkOutTime: e["logout_at"] != null
+                ? DateTime.parse(e["logout_at"])
+                : null,
+          ),
+        );
+      }
+      if (firstId != null) {
+        loadEmployeeStatus(firstId!);
+      }
+
+      update();
+    } catch (e) {
+      print("attendance error = $e");
+    }
+  }
+
+  //  Monthly ─
+  Future<void> fetchMonthlyAttendance(int month, int year) async {
+    try {
+      final res = await ApiService.get(Apis.attendanceMonthly);
+      print("monthly res = $res");
+      monthlyMonth = res["month"] ?? 0;
+      monthlyDays = res["total_days"] ?? 0;
+      monthlyHours = (res["total_hours"] ?? 0).toDouble();
+      update();
+    } catch (e) {
+      print("monthly error = $e");
+    }
+  }
+
+  // Total
+  Future<void> fetchAttendanceTotal() async {
+    try {
+      final res = await ApiService.get(Apis.attendanceTotal);
+      print("attendance total res ================ $res");
+      totalEmployeeId = res["employee_id"] ?? 0;
+      totalAttendanceDays = res["total_attendance_days"] ?? 0;
+      totalWorkHours = (res["total_work_hours"] ?? 0).toDouble();
+
+      update();
+    } catch (e) {
+      print("attendance total error ================= $e");
+    }
+  }
+
+  // employees status
+  Future<void> loadEmployeeStatus(int employeeId) async {
+    try {
+      final res = await ApiService.get(Apis.attendanceStatus(employeeId));
+      print("status res ========== $res");
+      currentEmployeeId = res["employee_id"] ?? 0;
+      currentEmployeeName = res["employee_name"] ?? "";
+      currentStatus = _mapStatus(res["status"]);
+      update();
+    } catch (e) {
+      print("status error = $e");
+    }
+  }
+
+  // Status mapping
+  String _mapStatus(String s) {
+    switch (s) {
+      case "logged_in":
+        return "Present";
+      case "not_logged_in":
+        return "Absent";
+      case "leave":
+        return "On Leave";
+      case "half_day":
+        return "Half Day";
+      default:
+        return "Absent";
+    }
   }
 
   //  Helpers
   List<Employee> get employees => _shell.employees;
 
-  /// Records shown in the list for the selected date + filter
   List<Attendance> get recordsForDate {
-    final d = selectedDate.value;
+    final d = selectedDate;
     return records.where((r) {
       final sameDay =
           r.date.year == d.year &&
           r.date.month == d.month &&
           r.date.day == d.day;
       if (!sameDay) return false;
-      if (selectedEmployeeId.value.isNotEmpty) {
-        return r.employeeId == selectedEmployeeId.value;
+      if (selectedEmployeeId.isNotEmpty) {
+        return r.employeeId == selectedEmployeeId;
       }
       return true;
     }).toList();
   }
 
-  /// Full history for one employee, newest first
   List<Attendance> recordsForEmployee(String empId) {
     return records.where((r) => r.employeeId == empId).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
@@ -60,21 +181,49 @@ class AttendanceController extends GetxController {
     }
   }
 
-  // ── Date & View Navigation
-  void changeDate(DateTime date) => selectedDate.value = date;
-  void prevDay() =>
-      selectedDate.value = selectedDate.value.subtract(const Duration(days: 1));
-  void nextDay() {
-    final next = selectedDate.value.add(const Duration(days: 1));
-    if (!next.isAfter(DateTime.now())) selectedDate.value = next;
+  // Date & View Navigation
+  void changeDate(DateTime date) {
+    selectedDate = date;
+    update();
   }
 
-  void toggleViewMode() =>
-      viewMode.value = viewMode.value == 'list' ? 'calendar' : 'list';
+  void prevDay() {
+    selectedDate = selectedDate.subtract(const Duration(days: 1));
+    update();
+  }
 
-  void setEmployeeFilter(String empId) => selectedEmployeeId.value = empId;
+  void nextDay() {
+    final next = selectedDate.add(const Duration(days: 1));
+    if (!next.isAfter(DateTime.now())) {
+      selectedDate = next;
+      update();
+    }
+  }
 
-  // ── Stats ──────────────────────────────────────────────────
+  void nextMonth() {
+    selectedDate = DateTime(selectedDate.year, selectedDate.month + 1);
+    loadMonthly();
+    update();
+  }
+
+  void toggleViewMode() {
+    viewMode = viewMode == 'list' ? 'calendar' : 'list';
+    if (viewMode == 'calendar') {
+      loadMonthly();
+    }
+    update();
+  }
+
+  void setEmployeeFilter(String empId) {
+    selectedEmployeeId = empId;
+    update();
+  }
+
+  void setSelectedEmployee(String id) {
+    selectedEmpId = id;
+    update();
+  }
+
   int get presentCount =>
       recordsForDate.where((a) => a.status == 'Present').length;
   int get absentCount =>
@@ -84,7 +233,7 @@ class AttendanceController extends GetxController {
   int get halfDayCount =>
       recordsForDate.where((a) => a.status == 'Half Day').length;
 
-  // ── Add Attendance ─────────────────────────────────────────
+  //  Add Attendance
   void addAttendance({
     required String employeeId,
     required DateTime date,
@@ -100,7 +249,6 @@ class AttendanceController extends GetxController {
 
     final cleanDate = DateTime(date.year, date.month, date.day);
 
-    // Remove any existing record for same employee + date
     records.removeWhere(
       (r) =>
           r.employeeId == employeeId &&
@@ -123,20 +271,19 @@ class AttendanceController extends GetxController {
 
     records.add(newRecord);
 
-    // Also sync back to shell so other screens stay updated
     _shell.attendanceRecords
       ..removeWhere(
         (r) =>
             r.employeeId == employeeId &&
-            r!.date.year == cleanDate.year &&
+            r.date.year == cleanDate.year &&
             r.date.month == cleanDate.month &&
             r.date.day == cleanDate.day,
       )
       ..add(newRecord);
 
-    // Jump to the saved date so user sees the record immediately
-    selectedDate.value = cleanDate;
-    selectedEmployeeId.value = '';
+    selectedDate = cleanDate;
+    selectedEmployeeId = '';
+    update();
 
     Get.snackbar(
       'Saved ✓',
@@ -148,7 +295,7 @@ class AttendanceController extends GetxController {
     );
   }
 
-  // ── Update Attendance ──────────────────────────────────────
+  //  Update Attendance
   void updateAttendance({
     required String recordId,
     required String newStatus,
@@ -166,20 +313,16 @@ class AttendanceController extends GetxController {
       checkOutTime: checkOutTime,
       remarks: remarks,
     );
-
     records[idx] = updated;
-
-    // Sync to shell
     final shellIdx = _shell.attendanceRecords.indexWhere(
       (r) => r.id == recordId,
     );
     if (shellIdx != -1) {
       _shell.attendanceRecords[shellIdx] = updated;
     }
-
-    // Jump to that date
-    selectedDate.value = DateTime(old.date.year, old.date.month, old.date.day);
-    selectedEmployeeId.value = '';
+    selectedDate = DateTime(old.date.year, old.date.month, old.date.day);
+    selectedEmployeeId = '';
+    update();
 
     Get.snackbar(
       'Updated ✓',
@@ -191,7 +334,7 @@ class AttendanceController extends GetxController {
     );
   }
 
-  // ── Show Add/Edit Dialog ────────────────────────────────────
+  // Show Add/Edit Dialog
   void showAddEditDialog({
     Attendance? existing,
     String? prefilledEmpId,
@@ -199,24 +342,16 @@ class AttendanceController extends GetxController {
   })
   {
     final isEdit = existing != null;
-    final formDate = (prefilledDate ?? selectedDate.value).obs;
-    final formCheckIn = Rx<TimeOfDay?>(
-      existing?.checkInTime != null
-          ? TimeOfDay.fromDateTime(existing!.checkInTime!)
-          : null,
-    );
-    final formCheckOut = Rx<TimeOfDay?>(
-      existing?.checkOutTime != null
-          ? TimeOfDay.fromDateTime(existing!.checkOutTime!)
-          : null,
-    );
-    final formStatus = (existing?.status ?? 'Present').obs;
+    DateTime formDate = prefilledDate ?? selectedDate;
+    TimeOfDay? formCheckIn = existing?.checkInTime != null
+        ? TimeOfDay.fromDateTime(existing!.checkInTime!)
+        : null;
+    TimeOfDay? formCheckOut = existing?.checkOutTime != null
+        ? TimeOfDay.fromDateTime(existing!.checkOutTime!)
+        : null;
+    String formStatus = existing?.status ?? 'Present';
     final remarksCtrl = TextEditingController(text: existing?.remarks ?? '');
-
-    // For employee picker
-    final selectedEmpId =
-        (prefilledEmpId ?? existing?.employeeId ?? employees.first.id).obs;
-
+    selectedEmpId = prefilledEmpId ?? existing?.employeeId ?? '';
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -227,7 +362,6 @@ class AttendanceController extends GetxController {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title
                 Row(
                   children: [
                     Container(
@@ -254,51 +388,19 @@ class AttendanceController extends GetxController {
                 ),
                 const SizedBox(height: 20),
 
-                // Employee Picker
                 if (!isEdit) ...[
-                  const _FieldLabel('Employee'),
-                  const SizedBox(height: 6),
-                  Obx(
-                    () => _DropdownField<String>(
-                      value: selectedEmpId.value,
-                      items: employees
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e.id,
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: const Color(
-                                      0xFFFF9800,
-                                    ).withOpacity(0.1),
-                                    child: Text(
-                                      e.name[0],
-                                      style: const TextStyle(
-                                        color: Color(0xFFFF9800),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      '${e.name} (${e.employeeCode})',
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => selectedEmpId.value = v!,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      "Employee will be selected automatically",
+                      style: TextStyle(fontSize: 13),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ] else ...[
-                  // Show employee info readonly
+
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -344,80 +446,70 @@ class AttendanceController extends GetxController {
                   ),
                   const SizedBox(height: 16),
                 ],
-
-                // Date Picker
                 const _FieldLabel('Date'),
                 const SizedBox(height: 6),
-                Obx(
-                  () => _DatePickerField(
-                    date: formDate.value,
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: Get.context!,
-                        initialDate: formDate.value,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                        builder: (ctx, child) => Theme(
-                          data: Theme.of(ctx).copyWith(
-                            colorScheme: const ColorScheme.light(
-                              primary: Color(0xFFFF9800),
-                            ),
-                          ),
-                          child: child!,
-                        ),
-                      );
-                      if (picked != null) formDate.value = picked;
-                    },
-                  ),
+                GetBuilder<AttendanceController>(
+                  builder: (c) {
+                    return _DatePickerField(
+                      date: formDate,
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: Get.context!,
+                          initialDate: formDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) {
+                          formDate = picked;
+                          c.update();
+                        }
+                      },
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
 
-                // Status
                 const _FieldLabel('Status'),
                 const SizedBox(height: 6),
-                Obx(
-                  () => Wrap(
-                    spacing: 8,
-                    children: ['Present', 'Absent', 'Half Day', 'On Leave'].map(
-                      (s) {
-                        final isSelected = formStatus.value == s;
-                        final color = _statusColorStatic(s);
-                        return GestureDetector(
-                          onTap: () => formStatus.value = s,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? color
-                                  : color.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: isSelected
-                                    ? color
-                                    : color.withOpacity(0.3),
+                GetBuilder<AttendanceController>(
+                  builder: (c) {
+                    return Wrap(
+                      spacing: 8,
+                      children: ['Present', 'Absent', 'Half Day', 'On Leave']
+                          .map((s) {
+                            final isSelected = formStatus == s;
+                            final color = _statusColorStatic(s);
+                            return GestureDetector(
+                              onTap: () {
+                                formStatus = s;
+                                c.update();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? color
+                                      : color.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  s,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : color,
+                                  ),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              s,
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : color,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ).toList(),
-                  ),
+                            );
+                          })
+                          .toList(),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
 
-                // Check-in / Check-out
                 Row(
                   children: [
                     Expanded(
@@ -426,28 +518,25 @@ class AttendanceController extends GetxController {
                         children: [
                           const _FieldLabel('Check-in'),
                           const SizedBox(height: 6),
-                          Obx(
-                            () => _TimePickerField(
-                              time: formCheckIn.value,
-                              hint: '--:-- --',
-                              onTap: () async {
-                                final t = await showTimePicker(
-                                  context: Get.context!,
-                                  initialTime:
-                                      formCheckIn.value ??
-                                      const TimeOfDay(hour: 9, minute: 0),
-                                  builder: (ctx, child) => Theme(
-                                    data: Theme.of(ctx).copyWith(
-                                      colorScheme: const ColorScheme.light(
-                                        primary: Color(0xFFFF9800),
-                                      ),
-                                    ),
-                                    child: child!,
-                                  ),
-                                );
-                                if (t != null) formCheckIn.value = t;
-                              },
-                            ),
+                          GetBuilder<AttendanceController>(
+                            builder: (c) {
+                              return _TimePickerField(
+                                time: formCheckIn,
+                                hint: '--:-- --',
+                                onTap: () async {
+                                  final t = await showTimePicker(
+                                    context: Get.context!,
+                                    initialTime:
+                                        formCheckIn ??
+                                        const TimeOfDay(hour: 9, minute: 0),
+                                  );
+                                  if (t != null) {
+                                    formCheckIn = t;
+                                    c.update();
+                                  }
+                                },
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -459,28 +548,25 @@ class AttendanceController extends GetxController {
                         children: [
                           const _FieldLabel('Check-out'),
                           const SizedBox(height: 6),
-                          Obx(
-                            () => _TimePickerField(
-                              time: formCheckOut.value,
-                              hint: '--:-- --',
-                              onTap: () async {
-                                final t = await showTimePicker(
-                                  context: Get.context!,
-                                  initialTime:
-                                      formCheckOut.value ??
-                                      const TimeOfDay(hour: 17, minute: 30),
-                                  builder: (ctx, child) => Theme(
-                                    data: Theme.of(ctx).copyWith(
-                                      colorScheme: const ColorScheme.light(
-                                        primary: Color(0xFFFF9800),
-                                      ),
-                                    ),
-                                    child: child!,
-                                  ),
-                                );
-                                if (t != null) formCheckOut.value = t;
-                              },
-                            ),
+                          GetBuilder<AttendanceController>(
+                            builder: (c) {
+                              return _TimePickerField(
+                                time: formCheckOut,
+                                hint: '--:-- --',
+                                onTap: () async {
+                                  final t = await showTimePicker(
+                                    context: Get.context!,
+                                    initialTime:
+                                        formCheckOut ??
+                                        const TimeOfDay(hour: 17, minute: 30),
+                                  );
+                                  if (t != null) {
+                                    formCheckOut = t;
+                                    c.update();
+                                  }
+                                },
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -489,8 +575,7 @@ class AttendanceController extends GetxController {
                 ),
                 const SizedBox(height: 16),
 
-                // Remarks
-                const _FieldLabel('Remarks (optional)'),
+                const _FieldLabel('Remarks'),
                 const SizedBox(height: 6),
                 TextField(
                   controller: remarksCtrl,
@@ -512,7 +597,6 @@ class AttendanceController extends GetxController {
                 ),
                 const SizedBox(height: 20),
 
-                // Actions
                 Row(
                   children: [
                     Expanded(
@@ -531,35 +615,34 @@ class AttendanceController extends GetxController {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          final d = formDate.value;
+                          final d = formDate;
                           DateTime? checkIn;
                           DateTime? checkOut;
 
-                          if (formCheckIn.value != null) {
+                          if (formCheckIn != null) {
                             checkIn = DateTime(
                               d.year,
                               d.month,
                               d.day,
-                              formCheckIn.value!.hour,
-                              formCheckIn.value!.minute,
+                              formCheckIn!.hour,
+                              formCheckIn!.minute,
                             );
                           }
 
-                          if (formCheckOut.value != null) {
+                          if (formCheckOut != null) {
                             checkOut = DateTime(
                               d.year,
                               d.month,
                               d.day,
-                              formCheckOut.value!.hour,
-                              formCheckOut.value!.minute,
+                              formCheckOut!.hour,
+                              formCheckOut!.minute,
                             );
                           }
 
-                          //SAVE / UPDATE CALL
                           if (isEdit) {
                             updateAttendance(
                               recordId: existing!.id,
-                              newStatus: formStatus.value,
+                              newStatus: formStatus,
                               checkInTime: checkIn,
                               checkOutTime: checkOut,
                               remarks: remarksCtrl.text.trim().isEmpty
@@ -568,9 +651,9 @@ class AttendanceController extends GetxController {
                             );
                           } else {
                             addAttendance(
-                              employeeId: selectedEmpId.value,
+                              employeeId: selectedEmpId,
                               date: d,
-                              status: formStatus.value,
+                              status: formStatus,
                               checkInTime: checkIn,
                               checkOutTime: checkOut,
                               remarks: remarksCtrl.text.trim().isEmpty
@@ -588,7 +671,6 @@ class AttendanceController extends GetxController {
                             }
                           });
                         },
-
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFF9800),
                           foregroundColor: Colors.white,
@@ -612,7 +694,7 @@ class AttendanceController extends GetxController {
     );
   }
 
-  // ── Employee Attendance History Dialog ──────────────────────
+  //  Employee History Dialog
   void showEmployeeHistory(Employee emp) {
     final history = recordsForEmployee(emp.id);
     Get.dialog(
@@ -623,7 +705,6 @@ class AttendanceController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: const BoxDecoration(
@@ -675,8 +756,6 @@ class AttendanceController extends GetxController {
                   ],
                 ),
               ),
-
-              // Summary row
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -721,8 +800,6 @@ class AttendanceController extends GetxController {
                 ),
               ),
               const Divider(height: 1),
-
-              // History list
               Flexible(
                 child: history.isEmpty
                     ? const Padding(
@@ -822,8 +899,7 @@ class AttendanceController extends GetxController {
     );
   }
 
-  // ── Calendar helpers ───────────────────────────────────────
-  /// All dates in visible month that have records for given employee
+  //  Calendar Helpers
   Map<DateTime, String> calendarStatusForEmployee(
     String empId,
     int year,
@@ -841,7 +917,7 @@ class AttendanceController extends GetxController {
     return result;
   }
 
-  // ── Helpers ────────────────────────────────────────────────
+  //Format Helpers
   String _fmtDate(DateTime d) => _formatDate(d);
 
   String _formatDate(DateTime d) {
@@ -860,8 +936,7 @@ class AttendanceController extends GetxController {
       'Dec',
     ];
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final wd = days[d.weekday - 1];
-    return '$wd, ${d.day} ${months[d.month - 1]} ${d.year}';
+    return '${days[d.weekday - 1]}, ${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
   String _formatTime(DateTime dt) {
@@ -891,7 +966,7 @@ class AttendanceController extends GetxController {
   }
 }
 
-// ── Small reusable dialog widgets ──────────────────────────────
+// Reusable Dialog Widgets
 class _FieldLabel extends StatelessWidget {
   final String text;
   const _FieldLabel(this.text);
