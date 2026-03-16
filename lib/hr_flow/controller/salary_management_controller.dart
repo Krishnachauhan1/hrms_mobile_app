@@ -19,23 +19,17 @@ class SalaryManagementController extends GetxController {
 
     try {
       final res = await ApiService.get("/employees");
-      print('cheking the employee salary response..........${res}');
       List list = res['data'];
       employees = [];
       for (var e in list) {
         int id = e['id'];
-        print('employee id is...........$id');
         final salaryRes = await ApiService.get(Apis.employeeSalary(id));
-        print('checking the salary response is..........${salaryRes}');
-        Map data = salaryRes['data'];
-        print("salary data ================ $data}");
-        employees.add(Map<String, dynamic>.from(data));
+        Map salaryData = salaryRes['data'];
+        employees.add({...e, ...salaryData});
       }
-      print('employee list $employees');
     } catch (e) {
       print(e);
     }
-
     isLoading = false;
     update();
   }
@@ -45,13 +39,17 @@ class SalaryManagementController extends GetxController {
     fetchEmployeesSalary();
   }
 
-  double get totalSalaryExpense =>
-      employees.fold(0.0, (sum, emp) => sum + (emp["salary"] ?? 0));
-
+  double get totalSalaryExpense => employees.fold(
+    0.0,
+    (sum, emp) => sum + double.parse((emp["monthly_salary"] ?? "0").toString()),
+  );
   double getDepartmentSalary(String department) => employees
-      .where((emp) => emp["department"] == department)
-      .fold(0.0, (sum, emp) => sum + (emp["salary"] ?? 0));
-
+      .where((emp) => (emp["department"] ?? "") == department)
+      .fold(
+        0.0,
+        (sum, emp) =>
+            sum + double.parse((emp["monthly_salary"] ?? "0").toString()),
+      );
   List<String> get departments =>
-      employees.map((e) => e["department"].toString()).toSet().toList();
+      employees.map((e) => (e["department"] ?? '').toString()).toSet().toList();
 }

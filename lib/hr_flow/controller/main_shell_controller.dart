@@ -41,9 +41,7 @@ class MainShellController extends GetxController {
               .toList(),
         );
       }
-    } catch (e) {
-      print('fetchLeaveApplications error============ $e');
-    }
+    } catch (e) {}
 
     isLeaveLoading = false;
     update();
