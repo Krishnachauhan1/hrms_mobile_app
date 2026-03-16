@@ -196,7 +196,8 @@ class AttendanceController extends GetxController {
     Attendance? existing,
     String? prefilledEmpId,
     DateTime? prefilledDate,
-  }) {
+  })
+  {
     final isEdit = existing != null;
     final formDate = (prefilledDate ?? selectedDate.value).obs;
     final formCheckIn = Rx<TimeOfDay?>(

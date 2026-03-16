@@ -177,8 +177,8 @@ class LeaveController extends GetxController {
 
     try {
       final dynamic response = await ApiService.get(Apis.leaveApplications);
-      print('leave-applications Api Status is 200....................');
-      print('leave-applications Api Raw is $response');
+      // print('leave-applications Api Status is 200....................');
+      // print('leave-applications Api Raw is $response');
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;

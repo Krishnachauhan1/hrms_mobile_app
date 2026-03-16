@@ -1,3 +1,4 @@
+import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/attendance_controller.dart';
 import 'package:employee_app/hr_flow/models/attendance_model.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,6 @@ class AttendanceView extends GetView<AttendanceController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.orange,
       appBar: _buildAppBar(),
       floatingActionButton: _AddFAB(controller: controller),
       body: Obx(
@@ -53,7 +53,7 @@ class _AddFAB extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
       onPressed: () => controller.showAddEditDialog(),
-      backgroundColor: Colors.orange,
+      backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       icon: const Icon(Icons.add_rounded),
       label: const Text('Add', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -104,7 +104,7 @@ class _DateNavigator extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 11),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.07),
+                    color: AppColors.primary.withOpacity(0.07),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -114,7 +114,7 @@ class _DateNavigator extends StatelessWidget {
                         children: [
                           const Icon(
                             Icons.calendar_today_rounded,
-                            color: Colors.orange,
+                            color: AppColors.primary,
                             size: 16,
                           ),
                           const SizedBox(width: 6),
@@ -123,7 +123,7 @@ class _DateNavigator extends StatelessWidget {
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 15,
-                              color: Colors.orange,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -135,7 +135,7 @@ class _DateNavigator extends StatelessWidget {
                             'Today',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.orange,
+                              color: AppColors.primary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -186,7 +186,7 @@ class _DateNavigator extends StatelessWidget {
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(primary: Colors.orange),
+          colorScheme: const ColorScheme.light(primary: AppColors.primary),
         ),
         child: child!,
       ),
@@ -226,7 +226,7 @@ class _NavBtn extends StatelessWidget {
   }
 }
 
-// ─── Employee Filter Bar ──────────────────────────────────────
+// ─── Employee Filter Bar ─────────────────
 class _EmployeeFilterBar extends StatelessWidget {
   final AttendanceController controller;
   const _EmployeeFilterBar({required this.controller});
@@ -244,6 +244,7 @@ class _EmployeeFilterBar extends StatelessWidget {
               // "All" chip
               _EmpChip(
                 label: 'All',
+
                 isSelected: controller.selectedEmployeeId.value.isEmpty,
                 onTap: () => controller.setEmployeeFilter(''),
               ),
@@ -287,7 +288,7 @@ class _EmpChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.orange : Colors.grey.shade100,
+          color: isSelected ? AppColors.primary : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -300,7 +301,7 @@ class _EmpChip extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.3)
-                      : Colors.orange.withOpacity(0.15),
+                      : AppColors.primary.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -309,7 +310,7 @@ class _EmpChip extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : Colors.orange,
+                      color: isSelected ? Colors.white : AppColors.primary,
                     ),
                   ),
                 ),
@@ -319,7 +320,7 @@ class _EmpChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.black : Colors.white70,
+                color: Colors.white,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 fontSize: 13,
               ),
@@ -331,7 +332,6 @@ class _EmpChip extends StatelessWidget {
   }
 }
 
-// ─── Stats Row ─────────────────────────────────────────────────
 class _StatsRow extends StatelessWidget {
   final AttendanceController controller;
   const _StatsRow({required this.controller});
@@ -423,7 +423,7 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-// ─── Attendance List ──────────────────────────────────────────
+// ─── Attendance List ─────────────────────────
 class _AttendanceList extends StatelessWidget {
   final AttendanceController controller;
   const _AttendanceList({required this.controller});
@@ -454,7 +454,7 @@ class _AttendanceList extends StatelessWidget {
                 onPressed: () => controller.showAddEditDialog(),
                 icon: const Icon(Icons.add_rounded),
                 label: const Text('Add Attendance'),
-                style: TextButton.styleFrom(foregroundColor: Colors.orange),
+                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
               ),
             ],
           ),
@@ -598,14 +598,14 @@ class _AttendanceCard extends StatelessWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.1),
+                                color: AppColors.primary.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 record.workingHours,
                                 style: const TextStyle(
                                   fontSize: 11,
-                                  color: Colors.orange,
+                                  color: AppColors.primary,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -642,13 +642,13 @@ class _AttendanceCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.edit_rounded,
                       size: 16,
-                      color: Colors.orange,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -671,7 +671,7 @@ class _AttendanceCard extends StatelessWidget {
                     child: const Icon(
                       Icons.history_rounded,
                       size: 16,
-                      color: Colors.orangeAccent,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -732,7 +732,7 @@ class _TimeChip extends StatelessWidget {
   }
 }
 
-// ─── CALENDAR VIEW ────────────────────────────────────────────
+// ─── CALENDAR VIEW ───────────────────────────
 class _CalendarView extends StatefulWidget {
   final AttendanceController controller;
   const _CalendarView({required this.controller});
@@ -814,7 +814,7 @@ class _CalendarViewState extends State<_CalendarView> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: isSel ? Colors.orange : Colors.transparent,
+                          color: isSel ? AppColors.primary : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
@@ -823,13 +823,13 @@ class _CalendarViewState extends State<_CalendarView> {
                               radius: 12,
                               backgroundColor: isSel
                                   ? Colors.white.withOpacity(0.3)
-                                  : Colors.orange.withOpacity(0.12),
+                                  : AppColors.primary.withOpacity(0.12),
                               child: Text(
                                 emp.name[0],
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: isSel ? Colors.white : Colors.orange,
+                                  color: isSel ? Colors.white : AppColors.primary,
                                 ),
                               ),
                             ),
@@ -1024,7 +1024,7 @@ class _CalendarViewState extends State<_CalendarView> {
   }
 }
 
-// ─── Calendar Grid ─────────────────────────────────────────────
+// ─── Calendar Grid ──────────────────────────
 class _CalendarGrid extends StatelessWidget {
   final int year;
   final int month;
@@ -1078,7 +1078,7 @@ class _CalendarGrid extends StatelessWidget {
                     margin: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       color: isToday
-                          ? Colors.orange
+                          ? AppColors.primary
                           : color?.withOpacity(0.15) ?? Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       border: isToday

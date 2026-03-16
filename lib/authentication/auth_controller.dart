@@ -35,11 +35,12 @@ class AuthController extends GetxController {
       return;
     }
 
-    isLoginLoading = true;
-    update();
+    // isLoginLoading = true;
+    // update();
 
     // try {
     final data = await ApiService.login(email: email, password: password);
+    print(data);
     final token = data["token"];
     final employee = data["employee"] ?? data["user"] ?? data["data"];
     if (token != null) {
@@ -60,9 +61,9 @@ class AuthController extends GetxController {
     // } catch (e) {
     // _showError("Login failed");
     // }
-
-    isLoginLoading = false;
-    update();
+    //
+    // isLoginLoading = false;
+    // update();
   }
 
   // LOGOUT
