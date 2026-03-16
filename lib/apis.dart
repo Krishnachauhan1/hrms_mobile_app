@@ -13,11 +13,10 @@ class Apis {
   static const String attendanceTotal = '/attendance/total';
   static String attendanceStatus(int employeeId) =>
       '/employees/$employeeId/attendance-status';
-
   static String attendanceHistory(int employeeId) =>
       '/attendance/history?employee_id=$employeeId';
 
-  //employee leave
+  // leave api
   static const String leaveTypes = '/leave-types';
   static const String leaveApplications = '/leave-applications';
   static String leaveApplicationStatus(String id) =>

@@ -67,7 +67,6 @@ class MainShellController extends GetxController {
       );
       update();
     }
-
     try {
       await ApiService.patch(
         Apis.leaveApplicationStatus(leaveId),

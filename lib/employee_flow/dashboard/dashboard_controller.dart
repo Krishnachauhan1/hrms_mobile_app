@@ -55,7 +55,6 @@ class DashboardController extends GetxController {
     employeeId = await ApiService.getEmployeeId();
 
     if (employeeId == null) {
-      print('Dashboard: employeeId not found');
       employeeName = authController.employee?['name']?.toString() ?? 'Employee';
       employeeInitials = _generateInitials(employeeName);
       employeeRole =
@@ -83,8 +82,6 @@ class DashboardController extends GetxController {
 
     try {
       final dynamic response = await ApiService.get(Apis.attendanceStatus(id));
-      print('Profile response🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩🤩 $response');
-
       if (response is Map<String, dynamic>) {
         final authEmployee = Get.find<AuthController>().employee;
         employeeName =
@@ -101,7 +98,6 @@ class DashboardController extends GetxController {
       isLoadingProfile = false;
       _safeUpdate();
     } catch (e) {
-      print('❌ Profile error: $e');
       isLoadingProfile = false;
       _safeUpdate();
     }
@@ -110,13 +106,11 @@ class DashboardController extends GetxController {
   // Today Attendance
 
   Future<void> fetchTodayAttendance() async {
-    print('📅 Dashboard: GET today ${Apis.baseUrl}${Apis.attendanceToday}');
     isLoadingToday = true;
     _safeUpdate();
 
     try {
       final dynamic response = await ApiService.get(Apis.attendanceToday);
-      print(' Response====================== ${response}');
 
       Map<String, dynamic> data = {};
 
@@ -124,24 +118,19 @@ class DashboardController extends GetxController {
         final raw = response['data'];
 
         if (raw is List) {
-          print("raw list ================ $raw");
           final employee = raw.firstWhereOrNull((e) {
             final eId = e['employee_id'];
-            print("local employee id.................... $employeeId");
             return eId?.toString() == employeeId?.toString();
           });
 
           if (employee != null) {
             data = employee as Map<String, dynamic>;
-            print('📅Found employee record: $data');
           } else {
-            print('📅 Employee not found in list. IDs in list:');
             for (final e in raw) {
               print(
                 '  → employee_id: ${e['employee_id']} (${e['employee_id'].runtimeType})',
               );
             }
-            print(' looking for: $employeeId (${employeeId.runtimeType})');
           }
         } else if (raw is Map<String, dynamic>) {
           data = raw;
@@ -150,15 +139,12 @@ class DashboardController extends GetxController {
         }
       }
 
-      // Status
-      print('print the data of check in ${response}');
       // Check-in time
       final rawLogin = response['date'];
       checkInTime = rawLogin.isEmpty ? '--:-- --' : _formatTime(rawLogin);
 
       // Working hours
       final rawHours = data['total_work_hours'] ?? data['total_hours'];
-      print('total work hours${data}');
       if (rawHours != null) {
         workingHours = _formatHours(rawHours);
       } else {
@@ -178,18 +164,12 @@ class DashboardController extends GetxController {
           }
         } else {
           workingHours = '0:00 hrs';
-          print('working hours====================${workingHours}');
         }
       }
-
-      print(
-        '📅 status: $todayStatus | checkIn: $checkInTime | hours: $workingHours',
-      );
 
       isLoadingToday = false;
       _safeUpdate();
     } on ApiException catch (e) {
-      print('📅 ❌ ${e.statusCode}: ${e.message}');
       if (e.statusCode == 404) {
         todayStatus = 'Not Marked';
         checkInTime = '--:-- --';
@@ -198,7 +178,6 @@ class DashboardController extends GetxController {
       isLoadingToday = false;
       _safeUpdate();
     } catch (e) {
-      print('📅 ❌ $e');
       isLoadingToday = false;
       _safeUpdate();
     }
@@ -206,14 +185,10 @@ class DashboardController extends GetxController {
 
   Future<void> checkAttendanceStatus() async {
     final id = await ApiService.getEmployeeId();
-    print('employee id ${employeeId}');
     if (id == null) return;
 
     try {
       final res = await ApiService.get(Apis.attendanceStatus(id));
-
-      print("check status response ${res}");
-      print("check status response ${res.runtimeType}");
       if (res is Map) {
         final status = (res['status'] ?? '').toString().toLowerCase();
         todayStatus = status;
@@ -226,26 +201,18 @@ class DashboardController extends GetxController {
   }
 
   Future<void> fetchMonthlyAttendance() async {
-    print(
-      '📅 Dashboard: GET monthly → ${Apis.baseUrl}${Apis.attendanceMonthly}',
-    );
-
     isLoadingMonthly = true;
     update();
 
     try {
       final response = await ApiService.get(Apis.attendanceMonthly);
-
-      print("📅 Monthly Response: $response");
-
       if (response != null && response['success'] == true) {
         monthlyDays = response['total_days'] ?? 0;
         monthlyHours = double.tryParse(response['total_hours'].toString()) ?? 0;
       }
     } catch (e) {
-      print("❌ Monthly error $e");
+      print("Monthly error is............. $e");
     }
-
     isLoadingMonthly = false;
     update();
   }
@@ -253,10 +220,8 @@ class DashboardController extends GetxController {
   Future<void> fetchTotalAttendance() async {
     isLoadingTotal = true;
     update();
-
     try {
       final res = await ApiService.get(Apis.attendanceTotal);
-
       if (res != null && res['success'] == true) {
         totalDays = res['total_attendance_days'] ?? 0;
         totalHours = double.tryParse(res['total_work_hours'].toString()) ?? 0;
@@ -264,27 +229,19 @@ class DashboardController extends GetxController {
     } catch (e) {
       print(e);
     }
-
     isLoadingTotal = false;
     update();
   }
 
   //  Attendance Stats
-
   Future<void> fetchAttendanceStats() async {
     final id = employeeId;
     if (id == null) return;
-    print(
-      '📊 Dashboard: GET stats → ${Apis.baseUrl}${Apis.attendanceHistory(id)}',
-    );
-
     isLoadingStats = true;
     _safeUpdate();
 
     try {
       final dynamic response = await ApiService.get(Apis.attendanceHistory(id));
-      print('📊 ✅ Response: $response');
-
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
@@ -319,39 +276,28 @@ class DashboardController extends GetxController {
           leaveDays++;
         }
       }
-
-      print('📊 present:$presentDays absent:$absentDays leaves:$leaveDays');
       isLoadingStats = false;
       _safeUpdate();
     } catch (e) {
-      print('📊 ❌ $e');
       isLoadingStats = false;
       _safeUpdate();
     }
   }
 
   //  Upcoming Leaves
-
   Future<void> fetchUpcomingLeaves() async {
-    print(
-      '🏖️  Dashboard: GET leaves → ${Apis.baseUrl}${Apis.leaveApplications}',
-    );
     isLoadingLeaves = true;
     _safeUpdate();
 
     try {
       final dynamic response = await ApiService.get(Apis.leaveApplications);
-      print('🏖️  ✅ Response: $response');
-
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
       } else if (response is Map && response['data'] != null) {
         rawList = response['data'] as List<dynamic>;
       }
-
       final today = DateTime.now();
-
       final filtered =
           rawList.map((e) => e as Map<String, dynamic>).where((item) {
             final fromDateRaw = item['from_date'] as String? ?? '';
@@ -396,19 +342,15 @@ class DashboardController extends GetxController {
           'status': _capitalize(item['status'] as String? ?? ''),
         };
       }).toList();
-
-      print('🏖️  ${upcomingLeaves.length} upcoming leaves');
       isLoadingLeaves = false;
       _safeUpdate();
     } catch (e) {
-      print('🏖️  ❌ $e');
       isLoadingLeaves = false;
       _safeUpdate();
     }
   }
 
   //  Logout
-
   Future<void> logout() async {
     isLoggingOut = true;
     update();
@@ -416,7 +358,6 @@ class DashboardController extends GetxController {
       await ApiService.clearToken();
       Get.offAllNamed('/login');
     } catch (e) {
-      print('❌ Logout error: $e');
       Get.snackbar(
         'Error',
         'Logout failed. Please try again.',
@@ -431,7 +372,6 @@ class DashboardController extends GetxController {
   }
 
   //  Helpers
-
   String _generateInitials(String name) {
     final parts = name.trim().split(' ');
     if (parts.length >= 2) {

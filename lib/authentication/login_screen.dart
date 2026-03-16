@@ -119,7 +119,6 @@ class LoginPage extends StatelessWidget {
             onToggle: controller.toggleLoginPassword,
           ),
           const SizedBox(height: 28),
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(

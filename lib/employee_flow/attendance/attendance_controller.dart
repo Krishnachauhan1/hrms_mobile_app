@@ -6,7 +6,6 @@ import 'package:employee_app/api_service.dart';
 import 'package:employee_app/apis.dart';
 
 // Model
-
 class AttendanceRecord {
   final String date;
   final String? loginTime;
@@ -25,7 +24,6 @@ class AttendanceRecord {
   });
 
   factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
-    //  status field se isPresent decide karo — is_present pe depend mat karo
     final rawStatus = (json['status'] as String? ?? '').toLowerCase();
     final bool present =
         rawStatus.contains('logged') ||
@@ -35,7 +33,6 @@ class AttendanceRecord {
         rawStatus == 'half_day' ||
         (json['is_present'] == true);
 
-    // login_at aur login_time dono field names handle karo
     final loginRaw =
         json['login_time'] as String? ??
         json['login_at'] as String? ??
@@ -134,8 +131,6 @@ class AttendanceRecord {
   }
 }
 
-// Controller
-
 class AttendanceController extends GetxController with WidgetsBindingObserver {
   int? employeeId;
 
@@ -154,7 +149,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   String? markedTime;
   bool isCheckedIn = false;
 
-  //  Today
+  //  Today Record
   Map<String, dynamic>? todayRecord = {};
   bool isLoadingToday = false;
 
@@ -163,12 +158,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   bool isLoadingHistory = false;
 
   Map<String, dynamic>? attendanceResult;
-
-  get viewMode => null;
-
-  VoidCallback? get toggleViewMode => null;
-
-  get selectedDate => null;
+  String? viewMode;
+  VoidCallback toggleViewMode = () {};
+  DateTime? selectedDate;
 
   @override
   void onInit() {
@@ -179,7 +171,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _loadAttendanceData() async {
     employeeId = await ApiService.getEmployeeId();
-    print('ATTENDANCE → employeeId: $employeeId');
 
     if (employeeId == null) {
       errorMessage = 'Employee ID not found. Please login again.';
@@ -237,16 +228,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       await _safeDisposeCamera();
       if (isClosed) return;
       _isCameraDisposed = false;
-
       cameraController = CameraController(
         frontCamera,
         ResolutionPreset.medium,
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
-
       await cameraController!.initialize();
-
       if (_isCameraDisposed || isClosed) {
         await _safeDisposeCamera();
         return;
@@ -255,16 +243,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isCameraInitialized = true;
       isCameraReady = true;
       errorMessage = null;
-      print('📷 Camera: ✅ ready');
       _safeUpdate();
     } on CameraException catch (e) {
-      print('📷 ❌ ${e.code}: ${e.description}');
       errorMessage = 'Camera error: ${e.description}';
       isCameraReady = false;
       isCameraOpen = false;
       _safeUpdate();
     } catch (e) {
-      print('📷 ❌ $e');
       errorMessage = 'Camera not available.';
       isCameraReady = false;
       isCameraOpen = false;
@@ -285,7 +270,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  // Photo capture — camera ready hone ka wait karta hai
+  // Photo capture
   Future<String?> _capturePhoto() async {
     int waited = 0;
     while ((cameraController == null ||
@@ -294,26 +279,19 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       await Future.delayed(const Duration(milliseconds: 200));
       waited += 200;
     }
-
     if (cameraController == null || !cameraController!.value.isInitialized) {
-      print('📸 ❌ Camera not ready after ${waited}ms');
       return null;
     }
 
     try {
       isCapturing = true;
       _safeUpdate();
-
       await Future.delayed(const Duration(milliseconds: 600));
-
       final XFile photo = await cameraController!.takePicture();
-      print('📸 ✅ Captured: ${photo.path}');
-
       isCapturing = false;
       _safeUpdate();
       return photo.path;
     } catch (e) {
-      print('📸 ❌ $e');
       isCapturing = false;
       _safeUpdate();
       return null;
@@ -358,9 +336,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   Future<void> _markLogin() async {
     isScanning = true;
     _safeUpdate();
-
-    print('🟢 POST punch-in → ${Apis.baseUrl}${Apis.attendanceLogin}');
-
     try {
       final position = await _getLocation();
       if (position == null) {
@@ -368,8 +343,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         await _closeCamera();
         return;
       }
-
-      // camera ready hone ka wait _capturePhoto ke andar hai
+      // camera ready hone ka wait
       final photoPath = await _capturePhoto();
       if (photoPath == null) {
         errorMessage = 'Could not capture photo. Please try again.';
@@ -378,7 +352,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         _safeUpdate();
         return;
       }
-
       final dynamic response = await ApiService.postMultipart(
         Apis.attendanceLogin,
         fields: {
@@ -407,7 +380,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isRecognized = false;
       _safeUpdate();
     } on ApiException catch (e) {
-      print('🟢 ❌ ${e.statusCode}: ${e.message}');
       isScanning = false;
       await _closeCamera();
       if (e.statusCode == 400 && e.message.toLowerCase().contains('logout')) {
@@ -420,7 +392,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         _showError(e.message);
       }
     } catch (e) {
-      print('🟢 ❌ $e');
       isScanning = false;
       await _closeCamera();
       errorMessage = 'Something went wrong. Try again.';
@@ -428,13 +399,11 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       _showError('Network error. Check your connection.');
     }
   }
-  // PUNCH OUT
 
+  // PUNCH OUT
   Future<void> _markLogout() async {
     isScanning = true;
     _safeUpdate();
-
-    print('🔴 POST punch-out → ${Apis.baseUrl}${Apis.attendanceLogout}');
 
     try {
       final position = await _getLocation();
@@ -464,18 +433,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         filePath: photoPath,
         fileField: 'photo',
       );
-
-      print('checkout response=========================== $response');
-
       isCheckedIn = false;
       isScanning = false;
       isRecognized = true;
       markedTime = TimeOfDay.now().format(Get.context!);
-
       await _closeCamera();
       _safeUpdate();
-      _showSuccess('Punched OUT at $markedTime');
-
+      _showSuccess('Punched Out at $markedTime');
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
 
@@ -484,14 +448,12 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isRecognized = false;
       _safeUpdate();
     } on ApiException catch (e) {
-      print('🔴 ❌ ${e.statusCode}: ${e.message}');
       isScanning = false;
       await _closeCamera();
       errorMessage = e.message;
       _safeUpdate();
       _showError(e.message);
     } catch (e) {
-      print('🔴 ❌ $e');
       isScanning = false;
       await _closeCamera();
       errorMessage = 'Logout failed. Try again.';
@@ -535,26 +497,20 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
     try {
       final res = await ApiService.get(Apis.attendanceStatus(id));
-
       if (res is Map) {
         final status = (res['status'] ?? '').toString().toLowerCase();
-
         switch (status) {
           case 'checked_in':
           case 'logged_in':
           case 'present':
             isCheckedIn = true;
             break;
-
           case 'not_logged_in':
           case 'absent':
           default:
             isCheckedIn = false;
         }
       }
-
-      print("isCheckedIn = $isCheckedIn");
-
       _safeUpdate();
     } catch (e) {
       print(e);
@@ -575,7 +531,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isLoadingToday = false;
       _safeUpdate();
     } catch (e) {
-      print('employee today attendance............. $e');
       isLoadingToday = false;
       _safeUpdate();
     }
@@ -591,8 +546,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
     try {
       final dynamic response = await ApiService.get(Apis.attendanceHistory(id));
-      print('fetch employee attendance history raw................ $response');
-
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
@@ -611,16 +564,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
       // Latest pehle
       historyList.sort((a, b) => b.date.compareTo(a.date));
-
-      print('📜 Parsed ${historyList.length} records');
       for (final r in historyList) {
-        print('  → ${r.date} | ${r.status} | present:${r.isPresent}');
+        print(' ${r.date} | ${r.status} | present:${r.isPresent}');
       }
 
       isLoadingHistory = false;
       _safeUpdate();
     } catch (e) {
-      print('📜 ❌ $e');
       isLoadingHistory = false;
       _safeUpdate();
     }

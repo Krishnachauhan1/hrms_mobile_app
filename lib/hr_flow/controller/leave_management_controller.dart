@@ -37,14 +37,12 @@ class LeaveManagementController extends GetxController {
         leaveTypes = data.map((e) => e as Map<String, dynamic>).toList();
       }
     } catch (e) {
-      print('fetchLeaveTypes error: $e');
+      print('fetchLeaveTypes error $e');
     }
-
     isLeaveTypesLoading = false;
     update();
   }
 
-  // Filtered Leaves (status + leave type both)
   List<LeaveRequest> get filteredLeaves {
     List<LeaveRequest> list = selectedFilter == 'All'
         ? _shell.leaveRequests

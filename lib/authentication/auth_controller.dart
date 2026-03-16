@@ -1,5 +1,4 @@
 import 'package:employee_app/api_service.dart';
-import 'package:employee_app/hr_flow/main_shell_view.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -29,12 +28,10 @@ class AuthController extends GetxController {
   Future<void> login() async {
     final email = loginEmailController.text.trim();
     final password = loginPasswordController.text.trim();
-
     if (email.isEmpty || password.isEmpty) {
       _showError("Fill all fields");
       return;
     }
-
     isLoginLoading = true;
     update();
 
@@ -48,15 +45,11 @@ class AuthController extends GetxController {
     if (employee != null) {
       await ApiService.saveEmployee(employee);
     }
-
-    print("login as employee");
     if (data['employee']['role'] == 'employee') {
       Get.offAllNamed("/home");
     } else {
-      // Get.offAll(() => MainShellView());
       Get.offAllNamed(AppRoutes.MAIN_SHELL);
     }
-    // Get.offAllNamed("/home");
     // } catch (e) {
     // _showError("Login failed");
     // }

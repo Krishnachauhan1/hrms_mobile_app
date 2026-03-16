@@ -23,7 +23,6 @@ class AttendanceController extends GetxController {
   //  Helpers
   List<Employee> get employees => _shell.employees;
 
-  /// Records shown in the list for the selected date + filter
   List<Attendance> get recordsForDate {
     final d = selectedDate.value;
     return records.where((r) {
