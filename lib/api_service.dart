@@ -9,6 +9,7 @@ class ApiService {
   static const String _tokenKey = 'auth_token';
   static const String _isLoginKey = 'is_login';
   static const String _employeeKey = 'auth_employee';
+  static const String _orgIdKey = 'organization_id';
   static const Duration _requestTimeout = Duration(seconds: 40);
 
   //  Token helpers
@@ -31,6 +32,16 @@ class ApiService {
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_isLoginKey) ?? false;
+  }
+
+  static Future<void> saveOrganizationId(String orgId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_orgIdKey, orgId);
+  }
+
+  static Future<String?> getOrganizationId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_orgIdKey);
   }
 
   static Future<Map<String, dynamic>?> getEmployee() async {

@@ -26,7 +26,7 @@ void main() async {
 
   if (isLoggedIn && employee != null) {
     String role = employee['role'] ?? employee['type'] ?? "employee";
-
+    print("role is======$role");
     if (role == "employee") {
       initialRoute = AppRoutes.MAIN_SHELL;
     } else {

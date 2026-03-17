@@ -1,3 +1,4 @@
+import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/main_shell_controller.dart';
 import 'package:employee_app/hr_flow/models/attendance_model.dart';
 import 'package:employee_app/hr_flow/models/employee_model.dart';
@@ -82,39 +83,48 @@ class AttendanceController extends GetxController {
   Future<void> fetchMonthlyAttendance(int month, int year) async {
     try {
       final res = await ApiService.get(Apis.attendanceMonthly);
+      // print("employe monthly attendance data is =====$res");
       monthlyMonth = res["month"] ?? 0;
       monthlyDays = res["total_days"] ?? 0;
       monthlyHours = (res["total_hours"] ?? 0).toDouble();
       update();
-    } catch (e) {}
+    } catch (e) {
+      print('the error is =======$e');
+    }
   }
 
   // Total
   Future<void> fetchAttendanceTotal() async {
     try {
       final res = await ApiService.get(Apis.attendanceTotal);
+      // print("employe  Total Attendance data is =====$res");
       totalEmployeeId = res["employee_id"] ?? 0;
       totalAttendanceDays = res["total_attendance_days"] ?? 0;
       totalWorkHours = (res["total_work_hours"] ?? 0).toDouble();
       update();
-    } catch (e) {}
+    } catch (e) {
+      print('error=====$e');
+    }
   }
 
   // employees status
   Future<void> loadEmployeeStatus(int employeeId) async {
     try {
       final res = await ApiService.get(Apis.attendanceStatus(employeeId));
+      // print("employe employee status data is =====$res");
       currentEmployeeId = res["employee_id"] ?? 0;
       currentEmployeeName = res["employee_name"] ?? "";
       currentStatus = _mapStatus(res["status"]);
       update();
-    } catch (e) {}
+    } catch (e) {
+      print('error is ==$e');
+    }
   }
 
   Future<void> fetchHistory(int employeeId) async {
     try {
       final res = await ApiService.get(Apis.attendanceHistory(employeeId));
-      print("history res ========== $res");
+      // print("history res ========== $res");
       historyRecords.clear();
       List list = res["data"];
       for (var e in list) {
@@ -393,7 +403,7 @@ class AttendanceController extends GetxController {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF9800).withOpacity(0.1),
+                        color: AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
@@ -713,7 +723,7 @@ class AttendanceController extends GetxController {
                           });
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF9800),
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           elevation: 0,
@@ -751,7 +761,7 @@ class AttendanceController extends GetxController {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFF9800),
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),

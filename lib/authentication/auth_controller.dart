@@ -37,14 +37,21 @@ class AuthController extends GetxController {
 
     // try {
     final data = await ApiService.login(email: email, password: password);
-    print(data);
     final token = data["token"];
     final employee = data["employee"] ?? data["user"] ?? data["data"];
+    //token
     if (token != null) {
       await ApiService.saveToken(token);
     }
+    // employee
     if (employee != null) {
       await ApiService.saveEmployee(employee);
+    }
+    //organization id
+    if (employee != null && employee["organization_id"] != null) {
+      await ApiService.saveOrganizationId(
+        employee["organization_id"].toString(),
+      );
     }
     if (data['employee']['role'] == 'employee') {
       Get.offAllNamed("/home");

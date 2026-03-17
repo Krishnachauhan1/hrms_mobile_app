@@ -8,7 +8,7 @@ import '../../apis.dart';
 class MainShellController extends GetxController {
   int currentIndex = 0;
   final List<Employee> employees = <Employee>[];
-  final List<LeaveRequest> leaveRequests = <LeaveRequest>[];
+  final List<LeaveRequest> leaveRequests = [];
   final List<Attendance> attendanceRecords = <Attendance>[];
 
   bool isLeaveLoading = false;
@@ -32,16 +32,20 @@ class MainShellController extends GetxController {
     try {
       final res = await ApiService.get(Apis.leaveApplications);
 
-      if (res['success'] == true) {
-        final List data = res['data'];
+      if (res["success"] == true) {
+        final List data = res["data"];
+
         leaveRequests.clear();
+
         leaveRequests.addAll(
           data
               .map((e) => LeaveRequest.fromJson(e as Map<String, dynamic>))
               .toList(),
         );
       }
-    } catch (e) {}
+    } catch (e) {
+      print(e);
+    }
 
     isLeaveLoading = false;
     update();
@@ -53,7 +57,7 @@ class MainShellController extends GetxController {
   int get onLeaveCount => employees.where((e) => e.status == 'On Leave').length;
   int get loggedInCount => employees.where((e) => e.isLoggedIn).length;
   int get pendingLeaveCount =>
-      leaveRequests.where((l) => l.status == 'Pending').length;
+      leaveRequests.where((l) => l.status.toLowerCase() == 'pending').length;
 
   //  Leave Actions with patch api
   Future<void> approveLeave(String leaveId) async {
@@ -71,7 +75,7 @@ class MainShellController extends GetxController {
         body: {'status': 'approved'},
       );
     } catch (e) {
-      print('approveLeave error============ $e');
+      // print('approveLeave error============ $e');
 
       if (index != -1) {
         leaveRequests[index] = leaveRequests[index].copyWith(status: 'Pending');
@@ -99,7 +103,7 @@ class MainShellController extends GetxController {
         },
       );
     } catch (e) {
-      print('rejectLeave error================== $e');
+      // print('rejectLeave error================== $e');
       if (index != -1) {
         leaveRequests[index] = leaveRequests[index].copyWith(status: 'Pending');
         update();
