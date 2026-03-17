@@ -1,3 +1,4 @@
+import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/main_shell_controller.dart';
 import 'package:employee_app/hr_flow/models/leave_request_model.dart';
 import 'package:get/get.dart';
@@ -29,16 +30,19 @@ class LeaveManagementController extends GetxController {
   Future<void> fetchLeaveTypes() async {
     isLeaveTypesLoading = true;
     update();
-
     try {
       final res = await ApiService.get(Apis.leaveTypes);
-      if (res['success'] == true) {
-        final List data = res['data'];
-        leaveTypes = data.map((e) => e as Map<String, dynamic>).toList();
+      if (res != null && res['success'] == true) {
+        final List data = res['data'] ?? [];
+        leaveTypes = data.map((e) => Map<String, dynamic>.from(e)).toList();
+      } else {
+        leaveTypes = [];
       }
     } catch (e) {
       print('fetchLeaveTypes error $e');
+      leaveTypes = [];
     }
+
     isLeaveTypesLoading = false;
     update();
   }
@@ -47,13 +51,16 @@ class LeaveManagementController extends GetxController {
     List<LeaveRequest> list = selectedFilter == 'All'
         ? _shell.leaveRequests
         : _shell.leaveRequests
-              .where((l) => l.status == selectedFilter)
+              .where(
+                (l) => l.status.toLowerCase() == selectedFilter.toLowerCase(),
+              )
               .toList();
 
     if (selectedLeaveTypeFilter != null) {
-      list = list.where((l) => l.leaveType == selectedLeaveTypeFilter).toList();
+      list = list
+          .where((l) => l.leaveTypeName == selectedLeaveTypeFilter)
+          .toList();
     }
-
     return list;
   }
 
@@ -123,7 +130,7 @@ class LeaveManagementController extends GetxController {
                 duration: const Duration(seconds: 2),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.border),
             child: const Text('Reject'),
           ),
         ],
@@ -233,10 +240,15 @@ class LeaveManagementController extends GetxController {
     );
   }
 
-  int get pendingCount =>
-      _shell.leaveRequests.where((l) => l.status == 'Pending').length;
-  int get approvedCount =>
-      _shell.leaveRequests.where((l) => l.status == 'Approved').length;
-  int get rejectedCount =>
-      _shell.leaveRequests.where((l) => l.status == 'Rejected').length;
+  int get pendingCount => _shell.leaveRequests
+      .where((l) => l.status.toLowerCase() == 'pending')
+      .length;
+
+  int get approvedCount => _shell.leaveRequests
+      .where((l) => l.status.toLowerCase() == 'approved')
+      .length;
+
+  int get rejectedCount => _shell.leaveRequests
+      .where((l) => l.status.toLowerCase() == 'rejected')
+      .length;
 }

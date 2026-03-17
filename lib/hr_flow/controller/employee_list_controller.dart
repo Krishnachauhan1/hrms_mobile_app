@@ -20,7 +20,14 @@ class EmployeeListController extends GetxController {
 
   Future<void> fetchEmployees() async {
     try {
-      final res = await ApiService.get(Apis.employees);
+      final orgId = await ApiService.getOrganizationId();
+      // print("org id = $orgId");
+      if (orgId == null || orgId.isEmpty) {
+        print("org id null");
+        return;
+      }
+      final res = await ApiService.get(Apis.organizationbyemployee(orgId));
+      // print('employee daata is======$res');
       if (res["success"] == true) {
         final List data = res["data"];
         _shell.employees.clear();

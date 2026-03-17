@@ -435,7 +435,7 @@ class _MiniLeaveCard extends StatelessWidget {
             radius: 22,
             backgroundColor: AppColors.primary.withOpacity(0.1),
             child: Text(
-              leave.employeeName[0],
+              leave.employeeName.isNotEmpty ? leave.employeeName[0] : "__",
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,

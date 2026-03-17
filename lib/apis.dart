@@ -16,6 +16,8 @@ class Apis {
   static String attendanceHistory(int employeeId) =>
       '/attendance/history?employee_id=$employeeId';
 
+  static String organizationbyemployee(String organization_id) =>
+      '/organizations/${organization_id}/employees';
   // leave api
   static const String leaveTypes = '/leave-types';
   static const String leaveApplications = '/leave-applications';
@@ -27,5 +29,5 @@ class Apis {
       '/employees/$employeeId/salary';
 
   //get all the employee by hr
-  static const employees = "/employees";
+  // static const employees = "/employees";
 }
