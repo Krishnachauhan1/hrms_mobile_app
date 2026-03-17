@@ -8,7 +8,7 @@ class Employee {
   final DateTime joiningDate;
   final String employeeCode;
   final double salary;
-  final String status; // Active, On Leave, Inactive
+  final String status;
   final String? imageUrl;
   final String address;
   final String emergencyContact;

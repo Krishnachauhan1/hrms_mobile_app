@@ -8,7 +8,7 @@ import '../../apis.dart';
 
 class AttendanceController extends GetxController {
   late final MainShellController _shell;
-
+  List<Attendance> historyRecords = [];
   DateTime selectedDate = DateTime.now();
   String selectedEmployeeId = '';
   String selectedEmpId = "";
@@ -45,18 +45,14 @@ class AttendanceController extends GetxController {
   Future<void> fetchTodayAttendance() async {
     try {
       final res = await ApiService.get(Apis.attendanceToday);
-      print("attendance res ======== $res");
-
       final String dateStr = res["date"];
       final DateTime apiDate = DateTime.parse(dateStr);
       selectedDate = apiDate;
-      print("selectedDate ================ $selectedDate");
       List list = res["data"];
       records.clear();
       int? firstId;
       for (var e in list) {
         firstId ??= e["employee_id"];
-        print('employee id is==========${e["employee_id"]}');
         records.add(
           Attendance(
             id: "${e["employee_id"]}_$dateStr",
@@ -79,51 +75,69 @@ class AttendanceController extends GetxController {
       }
 
       update();
-    } catch (e) {
-      print("attendance error = $e");
-    }
+    } catch (e) {}
   }
 
   //  Monthly ─
   Future<void> fetchMonthlyAttendance(int month, int year) async {
     try {
       final res = await ApiService.get(Apis.attendanceMonthly);
-      print("monthly res = $res");
       monthlyMonth = res["month"] ?? 0;
       monthlyDays = res["total_days"] ?? 0;
       monthlyHours = (res["total_hours"] ?? 0).toDouble();
       update();
-    } catch (e) {
-      print("monthly error = $e");
-    }
+    } catch (e) {}
   }
 
   // Total
   Future<void> fetchAttendanceTotal() async {
     try {
       final res = await ApiService.get(Apis.attendanceTotal);
-      print("attendance total res ================ $res");
       totalEmployeeId = res["employee_id"] ?? 0;
       totalAttendanceDays = res["total_attendance_days"] ?? 0;
       totalWorkHours = (res["total_work_hours"] ?? 0).toDouble();
-
       update();
-    } catch (e) {
-      print("attendance total error ================= $e");
-    }
+    } catch (e) {}
   }
 
   // employees status
   Future<void> loadEmployeeStatus(int employeeId) async {
     try {
       final res = await ApiService.get(Apis.attendanceStatus(employeeId));
-      print("status res ========== $res");
       currentEmployeeId = res["employee_id"] ?? 0;
       currentEmployeeName = res["employee_name"] ?? "";
       currentStatus = _mapStatus(res["status"]);
       update();
+    } catch (e) {}
+  }
+
+  Future<void> fetchHistory(int employeeId) async {
+    try {
+      final res = await ApiService.get(Apis.attendanceHistory(employeeId));
+      print("history res ========== $res");
+      historyRecords.clear();
+      List list = res["data"];
+      for (var e in list) {
+        historyRecords.add(
+          Attendance(
+            id: "${e["employee_id"]}_${e["date"]}",
+            employeeId: e["employee_id"].toString(),
+            employeeName: currentEmployeeName ?? "",
+            department: "",
+            date: DateTime.parse(e["date"]),
+            status: e["status"],
+            checkInTime: e["login_at"] != null
+                ? DateTime.parse(e["login_at"])
+                : null,
+            checkOutTime: e["logout_at"] != null
+                ? DateTime.parse(e["logout_at"])
+                : null,
+          ),
+        );
+      }
+      update();
     } catch (e) {
-      print("status error = $e");
+      print("history error = $e");
     }
   }
 
@@ -242,6 +256,16 @@ class AttendanceController extends GetxController {
     DateTime? checkOutTime,
     String? remarks,
   }) {
+    if (employeeId.isEmpty || employees.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Please select an employee',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
     final emp = employees.firstWhere(
       (e) => e.id == employeeId,
       orElse: () => employees.first,
@@ -339,8 +363,7 @@ class AttendanceController extends GetxController {
     Attendance? existing,
     String? prefilledEmpId,
     DateTime? prefilledDate,
-  })
-  {
+  }) {
     final isEdit = existing != null;
     DateTime formDate = prefilledDate ?? selectedDate;
     TimeOfDay? formCheckIn = existing?.checkInTime != null
@@ -351,7 +374,10 @@ class AttendanceController extends GetxController {
         : null;
     String formStatus = existing?.status ?? 'Present';
     final remarksCtrl = TextEditingController(text: existing?.remarks ?? '');
-    selectedEmpId = prefilledEmpId ?? existing?.employeeId ?? '';
+    selectedEmpId =
+        prefilledEmpId ??
+        existing?.employeeId ??
+        (employees.isNotEmpty ? employees.first.id : '');
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -395,12 +421,27 @@ class AttendanceController extends GetxController {
                       color: Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
-                      "Employee will be selected automatically",
-                      style: TextStyle(fontSize: 13),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_outline_rounded,
+                          color: Color(0xFFFF9800),
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            "New attendance record will be added",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF757575),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-
+                  const SizedBox(height: 16),
+                ] else ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -695,8 +736,9 @@ class AttendanceController extends GetxController {
   }
 
   //  Employee History Dialog
-  void showEmployeeHistory(Employee emp) {
-    final history = recordsForEmployee(emp.id);
+  void showEmployeeHistory(String empId, String name, String dept) {
+    final history = historyRecords;
+
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -705,6 +747,7 @@ class AttendanceController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              /// HEADER
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: const BoxDecoration(
@@ -719,20 +762,22 @@ class AttendanceController extends GetxController {
                     CircleAvatar(
                       backgroundColor: Colors.white,
                       child: Text(
-                        emp.name[0],
+                        name.isNotEmpty ? name[0] : "?",
                         style: const TextStyle(
                           color: Color(0xFFFF9800),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
+
                     const SizedBox(width: 12),
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            emp.name,
+                            name,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -740,7 +785,7 @@ class AttendanceController extends GetxController {
                             ),
                           ),
                           Text(
-                            '${emp.employeeCode} · ${emp.department}',
+                            dept,
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
@@ -749,6 +794,7 @@ class AttendanceController extends GetxController {
                         ],
                       ),
                     ),
+
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.white),
                       onPressed: Get.back,
@@ -756,11 +802,10 @@ class AttendanceController extends GetxController {
                   ],
                 ),
               ),
+
+              /// STATS
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.all(12),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -772,6 +817,7 @@ class AttendanceController extends GetxController {
                           .toString(),
                       const Color(0xFF27AE60),
                     ),
+
                     _HistoryStat(
                       'Absent',
                       history
@@ -780,112 +826,44 @@ class AttendanceController extends GetxController {
                           .toString(),
                       const Color(0xFFE74C3C),
                     ),
-                    _HistoryStat(
-                      'On Leave',
-                      history
-                          .where((h) => h.status == 'On Leave')
-                          .length
-                          .toString(),
-                      const Color(0xFFF39C12),
-                    ),
-                    _HistoryStat(
-                      'Half Day',
-                      history
-                          .where((h) => h.status == 'Half Day')
-                          .length
-                          .toString(),
-                      const Color(0xFF2980B9),
-                    ),
                   ],
                 ),
               ),
-              const Divider(height: 1),
+
+              const Divider(),
+
+              /// LIST
               Flexible(
                 child: history.isEmpty
                     ? const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text(
-                          'No attendance records found',
-                          style: TextStyle(color: Color(0xFF9E9E9E)),
-                        ),
+                        padding: EdgeInsets.all(20),
+                        child: Text("No history"),
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(12),
                         itemCount: history.length,
                         itemBuilder: (ctx, i) {
                           final r = history[i];
+
                           final color = statusColor(r.status);
+
                           return Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: color.withOpacity(0.2)),
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 4,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: color,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _formatDate(r.date),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      if (r.checkInTime != null)
-                                        Text(
-                                          'In: ${_formatTime(r.checkInTime!)}'
-                                          '${r.checkOutTime != null ? '  ·  Out: ${_formatTime(r.checkOutTime!)}  ·  ${r.workingHours}' : ''}',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF757575),
-                                          ),
-                                        ),
-                                      if (r.remarks != null &&
-                                          r.remarks!.isNotEmpty)
-                                        Text(
-                                          r.remarks!,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontStyle: FontStyle.italic,
-                                            color: Color(0xFF9E9E9E),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: color.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    r.status,
-                                    style: TextStyle(
-                                      color: color,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
+                                Text(_formatDate(r.date)),
+
+                                if (r.checkInTime != null)
+                                  Text("In: ${_formatTime(r.checkInTime!)}"),
+
+                                if (r.checkOutTime != null)
+                                  Text("Out: ${_formatTime(r.checkOutTime!)}"),
                               ],
                             ),
                           );
