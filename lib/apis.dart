@@ -25,4 +25,7 @@ class Apis {
   //salary
   static String employeeSalary(int employeeId) =>
       '/employees/$employeeId/salary';
+
+  //get all the employee by hr
+  static const employees = "/employees";
 }

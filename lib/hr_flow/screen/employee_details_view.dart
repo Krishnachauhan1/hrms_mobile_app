@@ -20,7 +20,7 @@ class EmployeeDetailsView extends GetView<EmployeeDetailsController> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            /// ✅ HEADER
+            /// HEADER
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -40,21 +40,17 @@ class EmployeeDetailsView extends GetView<EmployeeDetailsController> {
                       style: const TextStyle(fontSize: 25),
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   Text(
                     employee.name,
                     style: const TextStyle(fontSize: 20, color: Colors.white),
                   ),
-
                   Text(
                     employee.designation,
                     style: const TextStyle(color: Colors.white70),
                   ),
 
                   const SizedBox(height: 5),
-
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -72,7 +68,7 @@ class EmployeeDetailsView extends GetView<EmployeeDetailsController> {
 
             const SizedBox(height: 10),
 
-            /// ✅ BASIC INFO
+            /// BASIC INFO
             _card("Basic Info", [
               _row("Code", employee.employeeCode),
               _row("Department", employee.department),
@@ -80,7 +76,7 @@ class EmployeeDetailsView extends GetView<EmployeeDetailsController> {
               _row("Phone", employee.phone),
             ]),
 
-            /// ✅ SALARY
+            /// SALARY
             _card("Salary", [
               _row(
                 "Monthly",
@@ -92,7 +88,7 @@ class EmployeeDetailsView extends GetView<EmployeeDetailsController> {
               ),
             ]),
 
-            /// ✅ LEAVE
+            /// LEAVE
             _card("Leave", [
               _row("Total", employee.totalLeaves.toString()),
               _row("Used", employee.usedLeaves.toString()),
@@ -105,7 +101,7 @@ class EmployeeDetailsView extends GetView<EmployeeDetailsController> {
               ),
             ]),
 
-            /// ✅ LOGIN
+            //LOGIN
             _card("Login", [
               _row("Status", employee.isLoggedIn ? "Logged In" : "Logged Out"),
 
@@ -118,7 +114,7 @@ class EmployeeDetailsView extends GetView<EmployeeDetailsController> {
                 ),
             ]),
 
-            /// ✅ CONTACT
+            /// CONTACT
             _card("Contact", [
               _row("Address", employee.address),
               _row("Emergency", employee.emergencyContact),

@@ -637,12 +637,13 @@ class _AttendanceCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 GestureDetector(
-                  onTap: () {
-                    final emp = controller.employees.firstWhere(
-                      (e) => e.id == record.employeeId,
-                      orElse: () => controller.employees.first,
+                  onTap: () async {
+                    await controller.fetchHistory(int.parse(record.employeeId));
+                    controller.showEmployeeHistory(
+                      record.employeeId,
+                      record.employeeName,
+                      record.department,
                     );
-                    controller.showEmployeeHistory(emp);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(7),

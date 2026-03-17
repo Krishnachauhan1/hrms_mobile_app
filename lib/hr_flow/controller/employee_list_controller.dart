@@ -2,10 +2,12 @@ import 'package:employee_app/hr_flow/controller/main_shell_controller.dart';
 import 'package:employee_app/hr_flow/models/employee_model.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:get/get.dart';
+import '../../api_service.dart';
+import '../../apis.dart';
 
 class EmployeeListController extends GetxController {
   late final MainShellController _shell;
-
+  List<Map<String, dynamic>> employee = [];
   String searchQuery = '';
   String selectedFilter = 'All';
 
@@ -13,6 +15,47 @@ class EmployeeListController extends GetxController {
   void onInit() {
     super.onInit();
     _shell = Get.find<MainShellController>();
+    fetchEmployees();
+  }
+
+  Future<void> fetchEmployees() async {
+    try {
+      final res = await ApiService.get(Apis.employees);
+      if (res["success"] == true) {
+        final List data = res["data"];
+        _shell.employees.clear();
+        _shell.employees.addAll(
+          data.map((e) {
+            return Employee(
+              id: e["id"].toString(),
+              name: e["name"] ?? "",
+              employeeCode: e["id"].toString(),
+              department: e["organization"]?["organization_name"] ?? "",
+              designation: e["role"] ?? "",
+              status: e["is_active"] == 1 ? "Active" : "Inactive",
+              isLoggedIn: false,
+              email: e["email"] ?? "",
+              phone: e["phone"] ?? "",
+              salary: e["salary_structure"]?["monthly_salary"] != null
+                  ? double.tryParse(
+                          e["salary_structure"]["monthly_salary"].toString(),
+                        ) ??
+                        0
+                  : 0,
+              joiningDate: e["created_at"] != null
+                  ? DateTime.parse(e["created_at"])
+                  : DateTime.now(),
+              address: e["address"] ?? "",
+              emergencyContact: e["emergency_contact"] ?? "",
+              bloodGroup: e["blood_group"] ?? "",
+            );
+          }).toList(),
+        );
+        update();
+      }
+    } catch (e) {
+      print("employee error = $e");
+    }
   }
 
   List<Employee> get filteredEmployees {
@@ -21,12 +64,8 @@ class EmployeeListController extends GetxController {
     if (searchQuery.isNotEmpty) {
       result = result.where((e) {
         return e.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-            e.employeeCode.toLowerCase().contains(
-              searchQuery.toLowerCase(),
-            ) ||
-            e.department.toLowerCase().contains(
-              searchQuery.toLowerCase(),
-            );
+            e.employeeCode.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            e.department.toLowerCase().contains(searchQuery.toLowerCase());
       }).toList();
     }
 
