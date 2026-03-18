@@ -173,6 +173,7 @@ class ApiService {
     required String password,
   }) async {
     final url = Uri.parse('${Apis.baseUrl}${Apis.login}');
+    print(url);
     final headers = await _buildHeaders(withAuth: false);
     final body = jsonEncode({'email': email, 'password': password});
     try {

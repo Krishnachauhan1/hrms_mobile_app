@@ -42,7 +42,7 @@ class HomeView extends StatelessWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: 14,
                         crossAxisSpacing: 14,
-                        childAspectRatio: 1.55,
+                        childAspectRatio: 1.45,
                         children: [
                           _StatCard(
                             title: 'Total Employees',

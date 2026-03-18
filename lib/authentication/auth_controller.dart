@@ -35,7 +35,7 @@ class AuthController extends GetxController {
     isLoginLoading = true;
     update();
 
-    // try {
+    try {
     final data = await ApiService.login(email: email, password: password);
     final token = data["token"];
     final employee = data["employee"] ?? data["user"] ?? data["data"];
@@ -58,12 +58,12 @@ class AuthController extends GetxController {
     } else {
       Get.offAllNamed(AppRoutes.MAIN_SHELL);
     }
-    // } catch (e) {
-    // _showError("Login failed");
-    // }
-    //
-    // isLoginLoading = false;
-    // update();
+    } catch (e) {
+    _showError("Login failed");
+    }
+
+    isLoginLoading = false;
+    update();
   }
 
   // LOGOUT

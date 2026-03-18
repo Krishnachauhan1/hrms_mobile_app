@@ -190,7 +190,7 @@ class _EmployeeList extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Text(
                   'No employees found',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: Colors.black, fontSize: 16),
                 ),
               ],
             ),
@@ -286,6 +286,7 @@ class _EmployeeCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -293,7 +294,7 @@ class _EmployeeCard extends StatelessWidget {
                     employee.designation,
                     style: const TextStyle(
                       fontSize: 13,
-                      color: AppColors.textSecondary,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 4),
