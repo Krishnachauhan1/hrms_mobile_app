@@ -1,4 +1,3 @@
-import 'package:employee_app/app_color.dart';
 import 'package:employee_app/hr_flow/controller/leave_management_controller.dart';
 import 'package:employee_app/hr_flow/models/leave_request_model.dart';
 import 'package:flutter/material.dart';
@@ -45,113 +44,123 @@ class LeaveManagementView extends GetView<LeaveManagementController> {
       title: GetBuilder<LeaveManagementController>(
         builder: (controller) => controller.isSelectMode
             ? Text(
-          '${controller.selectedIds.length} Selected',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF0F172A),
-          ),
-        )
-            : Row(
-          children: [
-            const Text(
-              'Leave Requests',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(width: 8),
-            GetBuilder<LeaveManagementController>(
-              builder: (c) => c.pendingCount > 0
-                  ? Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FE),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${c.pendingCount} pending',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF5B21B6),
-                  ),
+                '${controller.selectedIds.length} Selected',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF0F172A),
                 ),
               )
-                  : const SizedBox.shrink(),
-            ),
-          ],
-        ),
+            : Row(
+                children: [
+                  const Text(
+                    'Leave Requests',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GetBuilder<LeaveManagementController>(
+                    builder: (c) => c.pendingCount > 0
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDE9FE),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${c.pendingCount} pending',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF5B21B6),
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
       ),
       actions: [
         GetBuilder<LeaveManagementController>(
           builder: (controller) => controller.isSelectMode
               ? Row(
-            children: [
-              TextButton(
-                onPressed: controller.selectAll,
-                child: const Text(
-                  'Select All',
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: controller.cancelSelectMode,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.black.withOpacity(0.12),
+                  children: [
+                    TextButton(
+                      onPressed: controller.selectAll,
+                      child: const Text(
+                        'Select All',
+                        style: TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                    child: const Icon(Icons.close,
-                        size: 16, color: Color(0xFF64748B)),
-                  ),
-                ),
-              ),
-            ],
-          )
-              : controller.pendingCount > 0
-              ? Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: controller.toggleSelectMode,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.black.withOpacity(0.12),
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.checklist_rounded,
-                        size: 14, color: Color(0xFF64748B)),
-                    SizedBox(width: 5),
-                    Text(
-                      'Select',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF64748B),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: controller.cancelSelectMode,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.black.withOpacity(0.12),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
                       ),
                     ),
                   ],
-                ),
-              ),
-            ),
-          )
+                )
+              : controller.pendingCount > 0
+              ? Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: GestureDetector(
+                    onTap: controller.toggleSelectMode,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.black.withOpacity(0.12),
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.checklist_rounded,
+                            size: 14,
+                            color: Color(0xFF64748B),
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'Select',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
               : const SizedBox.shrink(),
         ),
       ],
@@ -236,10 +245,7 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF64748B),
-              ),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
             ),
           ],
         ),
@@ -262,11 +268,11 @@ class _FilterRow extends StatelessWidget {
           children: [
             Container(height: 0.5, color: Colors.black.withOpacity(0.08)),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
-                children: ['Pending', 'Approved', 'Rejected', 'All']
-                    .map((filter) {
+                children: ['Pending', 'Approved', 'Rejected', 'All'].map((
+                  filter,
+                ) {
                   final isSelected = controller.selectedFilter == filter;
                   return Padding(
                     padding: const EdgeInsets.only(right: 6),
@@ -275,7 +281,9 @@ class _FilterRow extends StatelessWidget {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 7),
+                          horizontal: 16,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? const Color(0xFF0F172A)
@@ -349,12 +357,13 @@ class _LeaveTypeFilterRow extends StatelessWidget {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   children: [
                     _LeaveTypeChip(
                       label: 'All Types',
-                      isSelected:
-                      controller.selectedLeaveTypeFilter == null,
+                      isSelected: controller.selectedLeaveTypeFilter == null,
                       accentColor: const Color(0xFF7C3AED),
                       onTap: () => controller.setLeaveTypeFilter(null),
                     ),
@@ -419,17 +428,12 @@ class _LeaveTypeChip extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: isSelected
-                ? accentColor.withOpacity(0.1)
-                : Colors.white,
+            color: isSelected ? accentColor.withOpacity(0.1) : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isSelected
-                  ? accentColor
-                  : Colors.black.withOpacity(0.1),
+              color: isSelected ? accentColor : Colors.black.withOpacity(0.1),
               width: isSelected ? 1 : 0.5,
             ),
           ),
@@ -443,7 +447,9 @@ class _LeaveTypeChip extends StatelessWidget {
                     width: 5,
                     height: 5,
                     decoration: BoxDecoration(
-                        shape: BoxShape.circle, color: accentColor),
+                      shape: BoxShape.circle,
+                      color: accentColor,
+                    ),
                   ),
                 ),
               Text(
@@ -451,16 +457,16 @@ class _LeaveTypeChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: isSelected
-                      ? accentColor
-                      : const Color(0xFF64748B),
+                  color: isSelected ? accentColor : const Color(0xFF64748B),
                 ),
               ),
               if (days != null) ...[
                 const SizedBox(width: 5),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 1),
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? accentColor
@@ -573,9 +579,9 @@ class _LeaveCard extends StatelessWidget {
         return GestureDetector(
           onLongPress: status == 'pending'
               ? () {
-            controller.isSelectMode = true;
-            controller.toggleSelection(leave.id);
-          }
+                  controller.isSelectMode = true;
+                  controller.toggleSelection(leave.id);
+                }
               : null,
           onTap: isSelectMode && status == 'pending'
               ? () => controller.toggleSelection(leave.id)
@@ -612,12 +618,14 @@ class _LeaveCard extends StatelessWidget {
                                   Padding(
                                     padding: const EdgeInsets.only(right: 8),
                                     child: _SelectCircle(
-                                        isSelected: isSelected),
+                                      isSelected: isSelected,
+                                    ),
                                   ),
                                 CircleAvatar(
                                   radius: 18,
-                                  backgroundColor:
-                                  accentColor.withOpacity(0.12),
+                                  backgroundColor: accentColor.withOpacity(
+                                    0.12,
+                                  ),
                                   child: Text(
                                     initials,
                                     style: TextStyle(
@@ -631,7 +639,7 @@ class _LeaveCard extends StatelessWidget {
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         leave.employeeName,
@@ -653,7 +661,9 @@ class _LeaveCard extends StatelessWidget {
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 9, vertical: 3),
+                                    horizontal: 9,
+                                    vertical: 3,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: statusColor.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
@@ -672,8 +682,9 @@ class _LeaveCard extends StatelessWidget {
 
                             const SizedBox(height: 10),
                             Divider(
-                                height: 1,
-                                color: Colors.black.withOpacity(0.06)),
+                              height: 1,
+                              color: Colors.black.withOpacity(0.06),
+                            ),
                             const SizedBox(height: 10),
 
                             // Meta Row
@@ -692,14 +703,14 @@ class _LeaveCard extends StatelessWidget {
                                   child: _MetaItem(
                                     label: 'Duration',
                                     value:
-                                    '$days ${days == 1 ? 'day' : 'days'}',
+                                        '$days ${days == 1 ? 'day' : 'days'}',
                                   ),
                                 ),
                                 Expanded(
                                   child: _MetaItem(
                                     label: 'Dates',
                                     value:
-                                    '${DateFormat('dd MMM').format(startDate)} – '
+                                        '${DateFormat('dd MMM').format(startDate)} – '
                                         '${DateFormat('dd MMM').format(endDate)}',
                                   ),
                                 ),
@@ -712,7 +723,9 @@ class _LeaveCard extends StatelessWidget {
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 8),
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.03),
                                 borderRadius: BorderRadius.circular(8),
@@ -742,21 +755,25 @@ class _LeaveCard extends StatelessWidget {
                                       onPressed: () =>
                                           controller.rejectSingle(leave),
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor:
-                                        const Color(0xFF64748B),
+                                        foregroundColor: const Color(
+                                          0xFF64748B,
+                                        ),
                                         side: BorderSide(
-                                          color:
-                                          Colors.black.withOpacity(0.12),
+                                          color: Colors.black.withOpacity(0.12),
                                         ),
                                         padding: const EdgeInsets.symmetric(
-                                            vertical: 10),
+                                          vertical: 10,
+                                        ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                          BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                       ),
-                                      child: const Text('Reject',
-                                          style: TextStyle(fontSize: 12)),
+                                      child: const Text(
+                                        'Reject',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -765,19 +782,24 @@ class _LeaveCard extends StatelessWidget {
                                       onPressed: () =>
                                           controller.approveSingle(leave),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                        const Color(0xFF1D9E75),
+                                        backgroundColor: const Color(
+                                          0xFF1D9E75,
+                                        ),
                                         foregroundColor: Colors.white,
                                         elevation: 0,
                                         padding: const EdgeInsets.symmetric(
-                                            vertical: 10),
+                                          vertical: 10,
+                                        ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                          BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                       ),
-                                      child: const Text('Approve',
-                                          style: TextStyle(fontSize: 12)),
+                                      child: const Text(
+                                        'Approve',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -843,10 +865,7 @@ class _SelectCircle extends StatelessWidget {
       height: 20,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: const Color(0xFF1D9E75),
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color(0xFF1D9E75), width: 1.5),
         color: isSelected ? const Color(0xFF1D9E75) : Colors.transparent,
       ),
       child: isSelected
@@ -944,17 +963,12 @@ class _BulkActionBar extends StatelessWidget {
           top: 12,
           bottom: MediaQuery.of(context).padding.bottom + 12,
         ),
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E293B),
-        ),
+        decoration: const BoxDecoration(color: Color(0xFF1E293B)),
         child: Row(
           children: [
             Text(
               '${controller.selectedIds.length} selected',
-              style: const TextStyle(
-                color: Color(0xFF94A3B8),
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -964,9 +978,7 @@ class _BulkActionBar extends StatelessWidget {
                 label: Text('Reject (${controller.selectedIds.length})'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFFCA5A5),
-                  side: BorderSide(
-                    color: Colors.red.withOpacity(0.4),
-                  ),
+                  side: BorderSide(color: Colors.red.withOpacity(0.4)),
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

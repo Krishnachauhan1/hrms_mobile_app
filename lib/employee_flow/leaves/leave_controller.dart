@@ -161,6 +161,7 @@ class LeaveController extends GetxController {
         rawList = response;
       } else if (response is Map && response['data'] != null) {
         rawList = response['data'] as List<dynamic>;
+        print("print the leave data is=======$rawList");
       }
       leaveHistory = rawList
           .map((e) => LeaveApplication.fromJson(e as Map<String, dynamic>))
