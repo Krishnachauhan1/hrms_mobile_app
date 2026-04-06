@@ -180,7 +180,6 @@ class ApiService {
       final response = await http
           .post(url, headers: headers, body: body)
           .timeout(_requestTimeout);
-
       return _handleResponse(response);
     } on TimeoutException {
       throw ApiException(
@@ -193,6 +192,7 @@ class ApiService {
   static Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders();
+    print(headers);
     try {
       final response = await http
           .get(url, headers: headers)

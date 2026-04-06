@@ -31,6 +31,7 @@ class MainShellController extends GetxController {
 
     try {
       final res = await ApiService.get(Apis.leaveApplications);
+      print('leaves data $res');
 
       if (res["success"] == true) {
         final List data = res["data"];

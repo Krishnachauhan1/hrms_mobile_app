@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/apis.dart';
 
-// Model
+
 class AttendanceRecord {
   final String date;
   final String? loginTime;

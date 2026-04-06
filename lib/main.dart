@@ -45,7 +45,7 @@ class HRMSApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'HRMS',
+      title: 'Salary make',
       debugShowCheckedModeBanner: false,
 
       theme: ThemeData(
