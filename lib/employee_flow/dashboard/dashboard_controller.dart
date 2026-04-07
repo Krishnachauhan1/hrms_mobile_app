@@ -76,7 +76,7 @@ class DashboardController extends GetxController {
   Future<void> fetchProfile() async {
     final id = employeeId;
     if (id == null) return;
-
+    print('the employee id is ========$id');
     isLoadingProfile = true;
     _safeUpdate();
 
@@ -108,21 +108,17 @@ class DashboardController extends GetxController {
   Future<void> fetchTodayAttendance() async {
     isLoadingToday = true;
     _safeUpdate();
-
     try {
       final dynamic response = await ApiService.get(Apis.attendanceToday);
-
+      print("the employee data response is ===========$response");
       Map<String, dynamic> data = {};
-
-      if (response is Map<String, dynamic>) {
+      if (response is Map<String, dynamic> && response['data'] != null) {
         final raw = response['data'];
-
         if (raw is List) {
           final employee = raw.firstWhereOrNull((e) {
             final eId = e['employee_id'];
             return eId?.toString() == employeeId?.toString();
           });
-
           if (employee != null) {
             data = employee as Map<String, dynamic>;
           } else {
@@ -186,14 +182,12 @@ class DashboardController extends GetxController {
   Future<void> checkAttendanceStatus() async {
     final id = await ApiService.getEmployeeId();
     if (id == null) return;
-
     try {
       final res = await ApiService.get(Apis.attendanceStatus(id));
       if (res is Map) {
         final status = (res['status'] ?? '').toString().toLowerCase();
         todayStatus = status;
       }
-
       _safeUpdate();
     } catch (e) {
       print(e);
@@ -206,6 +200,7 @@ class DashboardController extends GetxController {
 
     try {
       final response = await ApiService.get(Apis.attendanceMonthly);
+      print('monthly employee attendance =====$response');
       if (response != null && response['success'] == true) {
         monthlyDays = response['total_days'] ?? 0;
         monthlyHours = double.tryParse(response['total_hours'].toString()) ?? 0;
@@ -222,6 +217,7 @@ class DashboardController extends GetxController {
     update();
     try {
       final res = await ApiService.get(Apis.attendanceTotal);
+      print('total attendance of the EMPLOYEE =====$res');
       if (res != null && res['success'] == true) {
         totalDays = res['total_attendance_days'] ?? 0;
         totalHours = double.tryParse(res['total_work_hours'].toString()) ?? 0;

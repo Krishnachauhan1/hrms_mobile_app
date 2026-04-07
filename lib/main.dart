@@ -12,7 +12,6 @@ import 'package:employee_app/hr_flow/routes/app_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
@@ -20,15 +19,17 @@ void main() async {
   final employee = await ApiService.getEmployee();
   String initialRoute = AppRoutes.LOGIN;
   if (isLoggedIn && employee != null) {
-    String role = employee['role'] ?? employee['type'] ?? "employee";
-    print("role is======$role");
-    // if (role == "employee")
+    String role = (employee['role'] ?? employee['type'] ?? "employee")
+        .toString()
+        .toLowerCase();
+    print("role is=== $role");
     if (role == "hr") {
-      initialRoute = '/home';
-    } else {
       initialRoute = AppRoutes.MAIN_SHELL;
+    } else {
+      initialRoute = '/home';
     }
   }
+
   runApp(HRMSApp(initialRoute: initialRoute));
 }
 
