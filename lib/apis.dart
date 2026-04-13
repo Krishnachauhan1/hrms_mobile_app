@@ -1,5 +1,5 @@
 class Apis {
-  static const String baseUrl = 'https://hrmsapi.nextlogicsolution.id/api';
+  static const String baseUrl = "https://quicksalary.org/api";
   // static const String baseUrl = 'https://hrmsapi.nextlogicsolution.id/api';
 
   //empoyee login endpoint
@@ -30,5 +30,7 @@ class Apis {
       '/employees/$employeeId/salary';
 
   //get all the employee by hr
-  static const allEmployee = "/employees";
+  // static const allEmployee = "/employees";
+  static String employeesByOrganizations(dynamic organizationsId) =>
+      '/organization/$organizationsId/employees';
 }

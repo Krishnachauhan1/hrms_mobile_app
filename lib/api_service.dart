@@ -193,10 +193,13 @@ class ApiService {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders();
     print(headers);
+
     try {
       final response = await http
           .get(url, headers: headers)
           .timeout(_requestTimeout);
+      print('print body===${response.body}');
+      print('print body===${response.request}');
       return _handleResponse(response);
     } on TimeoutException {
       throw ApiException(

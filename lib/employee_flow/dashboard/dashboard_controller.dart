@@ -197,10 +197,10 @@ class DashboardController extends GetxController {
           employeeInitials = _generateInitials(employeeName);
         }
 
-        print(' checkInTime=== $checkInTime');
-        print(' checkOutTime===$checkOutTime');
-        print(' workingHours=== $workingHours');
-        print('todayStatus=== $todayStatus');
+        // print(' checkInTime=== $checkInTime');
+        // print(' checkOutTime===$checkOutTime');
+        // print(' workingHours=== $workingHours');
+        // print('todayStatus=== $todayStatus');
       } else {
         print('No today record found for employee $id');
         checkInTime = '--:-- --';

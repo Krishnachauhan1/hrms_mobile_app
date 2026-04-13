@@ -24,6 +24,7 @@ class SalaryManagementController extends GetxController {
       for (var e in list) {
         int id = e['id'];
         final salaryRes = await ApiService.get(Apis.employeeSalary(id));
+        print('USERS SALARY ====$salaryRes');
         Map salaryData = salaryRes['data'];
         employees.add({...e, ...salaryData});
       }
