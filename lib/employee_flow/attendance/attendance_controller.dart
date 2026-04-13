@@ -23,43 +23,30 @@ class AttendanceRecord {
   });
 
   factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
-    final rawStatus = (json['status'] as String? ?? '').toLowerCase();
-    final bool present =
-        rawStatus.contains('logged') ||
-        rawStatus.contains('present') ||
-        rawStatus == 'checked_in' ||
-        rawStatus == 'checked_out' ||
-        rawStatus == 'half_day' ||
-        (json['is_present'] == true);
-
-    final loginRaw =
-        json['login_time'] as String? ??
-        json['login_at'] as String? ??
-        json['check_in'] as String?;
+    final loginRaw = json['login_time'] ?? json['login_at'] ?? json['check_in'];
 
     final logoutRaw =
-        json['logout_time'] as String? ??
-        json['logout_at'] as String? ??
-        json['check_out'] as String?;
+        json['logout_time'] ?? json['logout_at'] ?? json['check_out'];
+
+    final bool present = loginRaw != null;
+
+    String date = loginRaw ?? '';
 
     String? totalHours;
     if (loginRaw != null && logoutRaw != null) {
       totalHours =
-          json['total_hours'] as String? ??
-          json['total_work_hours'] as String? ??
+          json['total_work_hours']?.toString() ??
           _calcHours(loginRaw, logoutRaw);
     }
 
     return AttendanceRecord(
-      date: json['date'] as String? ?? '',
+      date: date,
       loginTime: loginRaw != null ? _formatTime(loginRaw) : null,
       logoutTime: logoutRaw != null ? _formatTime(logoutRaw) : null,
       totalHours: totalHours,
       isPresent: present,
-      status: rawStatus,
     );
   }
-
   static String _formatTime(String raw) {
     try {
       if (raw.contains('T') || (raw.contains('-') && raw.length > 8)) {
@@ -522,6 +509,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     _safeUpdate();
     try {
       final dynamic response = await ApiService.get(Apis.attendanceToday);
+      print('user today attendance data is ==$response');
       if (response is Map<String, dynamic>) {
         todayRecord = response['data'] is Map
             ? response['data'] as Map<String, dynamic>
@@ -545,6 +533,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
     try {
       final dynamic response = await ApiService.get(Apis.attendanceHistory(id));
+      print('Employee attendance hostroy response ==$response');
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
@@ -560,9 +549,15 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       historyList = rawList
           .map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
           .toList();
-
+      print("Final history length===${historyList.length}");
       // Latest pehle
-      historyList.sort((a, b) => b.date.compareTo(a.date));
+      historyList.sort((a, b) {
+        try {
+          return DateTime.parse(b.date).compareTo(DateTime.parse(a.date));
+        } catch (_) {
+          return 0;
+        }
+      });
       for (final r in historyList) {
         print(' ${r.date} | ${r.status} | present:${r.isPresent}');
       }
