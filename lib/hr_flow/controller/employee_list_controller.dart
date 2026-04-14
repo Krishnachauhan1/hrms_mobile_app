@@ -31,7 +31,7 @@ class EmployeeListController extends GetxController {
       // print("API URL: $url");
       final res = await ApiService.get(url);
 
-      print('employee data is====== $res');
+      // print('employee data is====== $res');
       if (res["success"] == true) {
         final List data = res["data"];
         _shell.employees.clear();

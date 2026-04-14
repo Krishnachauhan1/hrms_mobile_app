@@ -19,7 +19,9 @@ dependencies:
   geolocator: ^14.0.2
   permission_handler: ^12.0.1
   intl: ^0.20.2
-
+  mobile_scanner: ^7.2.0
+  
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -27,6 +29,7 @@ dev_dependencies:
 
   # ✅ CORRECT place
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash:
 
 flutter:
   uses-material-design: true
@@ -38,4 +41,15 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/app_icon.jpeg"
+  image_path: "assets/ICON.jpeg"
+
+flutter_native_splash:
+  color: "#ffffff"   # background color
+  image: assets/ICON.jpeg # your logo
+
+  android: true
+  ios: true
+
+  android_12:
+    image: assets/ICON.jpeg
+    color: "#ffffff"

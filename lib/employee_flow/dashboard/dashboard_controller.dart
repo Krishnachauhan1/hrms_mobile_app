@@ -203,7 +203,7 @@ class DashboardController extends GetxController {
         // print('todayStatus=== $todayStatus');
       } else {
         print('No today record found for employee $id');
-        checkInTime = '--:-- --';
+        checkInTime = 'Not Mark';
         checkOutTime = '--:-- --';
         workingHours = '0:00 hrs';
         if (todayStatus.isEmpty) todayStatus = 'Not Marked';

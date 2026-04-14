@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import java.io.File
 
 plugins {
     id("com.android.application")
@@ -7,16 +8,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// 🔐 Load keystore properties
+// Load keystore properties
 val keystoreProperties = Properties()
-val keystorePropertiesFile = rootProject.file("key.properties")
+val keystorePropertiesFile = File(rootDir, "key.properties") // ✅ Fixed path
 
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+} else {
+    throw GradleException("key.properties file not found at: ${keystorePropertiesFile.absolutePath}")
 }
 
 android {
-    namespace = "com.hrms_employee_app"
+   namespace = "com.hrms_employee_app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -37,22 +40,32 @@ android {
         versionName = flutter.versionName
     }
 
-    // 🔐 ADD THIS BLOCK
-   signingConfigs {
-    create("release") {
-        keyAlias = keystoreProperties["keyAlias"] as String
-        keyPassword = keystoreProperties["keyPassword"] as String
-        storeFile = file(keystoreProperties["storeFile"] as String)
-        storePassword = keystoreProperties["storePassword"] as String
- }
-}
+    signingConfigs {
+        create("release") {
+            // ✅ Use getProperty() instead of casting
+            val keyAliasValue = keystoreProperties.getProperty("keyAlias")
+            val keyPasswordValue = keystoreProperties.getProperty("keyPassword")
+            val storeFileValue = keystoreProperties.getProperty("storeFile")
+            val storePasswordValue = keystoreProperties.getProperty("storePassword")
+
+            if (keyAliasValue == null || keyPasswordValue == null ||
+                storeFileValue == null || storePasswordValue == null) {
+                throw GradleException(
+                    "Missing key.properties values. Found: alias=$keyAliasValue, storeFile=$storeFileValue"
+                )
+            }
+
+            keyAlias = keyAliasValue
+            keyPassword = keyPasswordValue
+            storeFile = file(storeFileValue)
+            storePassword = storePasswordValue
+        }
+    }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-
-            // ✅ USE RELEASE SIGNING
             signingConfig = signingConfigs.getByName("release")
         }
     }

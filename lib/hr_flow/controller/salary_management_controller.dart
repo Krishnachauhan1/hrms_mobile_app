@@ -16,7 +16,6 @@ class SalaryManagementController extends GetxController {
   Future<void> fetchEmployeesSalary() async {
     isLoading = true;
     update();
-
     try {
       final res = await ApiService.get("/employees");
       List list = res['data'];
@@ -24,9 +23,13 @@ class SalaryManagementController extends GetxController {
       for (var e in list) {
         int id = e['id'];
         final salaryRes = await ApiService.get(Apis.employeeSalary(id));
-        print('USERS SALARY ====$salaryRes');
+        // print('USERS SALARY ====$salaryRes');
         Map salaryData = salaryRes['data'];
-        employees.add({...e, ...salaryData});
+        employees.add({
+          ...e,
+          ...salaryData,
+          "department": e["department"] ?? "General",
+        });
       }
     } catch (e) {
       print(e);
@@ -42,15 +45,17 @@ class SalaryManagementController extends GetxController {
 
   double get totalSalaryExpense => employees.fold(
     0.0,
-    (sum, emp) => sum + double.parse((emp["monthly_salary"] ?? "0").toString()),
+    (sum, emp) =>
+        sum + double.tryParse(emp["basic_salary"]?.toString() ?? "0")!,
   );
   double getDepartmentSalary(String department) => employees
       .where((emp) => (emp["department"] ?? "") == department)
       .fold(
         0.0,
         (sum, emp) =>
-            sum + double.parse((emp["monthly_salary"] ?? "0").toString()),
+            sum + double.tryParse(emp["basic_salary"]?.toString() ?? "0")!,
       );
+
   List<String> get departments =>
       employees.map((e) => (e["department"] ?? '').toString()).toSet().toList();
 }

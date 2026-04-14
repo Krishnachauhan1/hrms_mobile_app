@@ -573,7 +573,7 @@ class AttendanceController extends GetxController {
                             builder: (c) {
                               return _TimePickerField(
                                 time: formCheckIn,
-                                hint: '--:-- --',
+                                hint: 'Not Mark Yet',
                                 onTap: () async {
                                   final t = await showTimePicker(
                                     context: Get.context!,

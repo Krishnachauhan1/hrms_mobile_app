@@ -225,9 +225,10 @@ class LeavePage extends StatelessWidget {
                   )
                 : DropdownButtonHideUnderline(
                     child: DropdownButton<LeaveType>(
-                      value: controller.leaveTypes.any(
-                        (type) => type.id == controller.selectedType?.id,
-                      )
+                      value:
+                          controller.leaveTypes.any(
+                            (type) => type.id == controller.selectedType?.id,
+                          )
                           ? controller.selectedType
                           : null,
                       isExpanded: true,
