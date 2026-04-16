@@ -1,11 +1,10 @@
+import 'package:employee_app/authentication/splash_scree.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/authentication/auth_controller.dart';
 import 'package:employee_app/authentication/login_screen.dart';
-
 import 'package:employee_app/employee_flow/bottomnav/homepage.dart';
 
 // HR routes
@@ -14,33 +13,15 @@ import 'package:employee_app/hr_flow/routes/app_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
 
-  final bool isLoggedIn = await ApiService.isLoggedIn();
-  final employee = await ApiService.getEmployee();
-
-  String initialRoute = AppRoutes.LOGIN;
-
-  if (isLoggedIn && employee != null) {
-    String role = employee['role'] ?? employee['type'] ?? "employee";
-    print("role is======$role");
-    if (role == "employee") {
-      initialRoute = AppRoutes.MAIN_SHELL;
-    } else {
-      initialRoute = '/home';
-    }
-  }
-
-  runApp(HRMSApp(initialRoute: initialRoute));
+  runApp(HRMSApp());
 }
 
 class HRMSApp extends StatelessWidget {
-  final String initialRoute;
-
-  const HRMSApp({super.key, required this.initialRoute});
+  const HRMSApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -57,10 +38,10 @@ class HRMSApp extends StatelessWidget {
       initialBinding: BindingsBuilder(() {
         Get.put(AuthController(), permanent: true);
       }),
-
-      initialRoute: initialRoute,
+      initialRoute: '/splash',
 
       getPages: [
+        GetPage(name: '/splash', page: () => SplashScreen()),
         GetPage(name: AppRoutes.LOGIN, page: () => const LoginPage()),
         GetPage(name: '/home', page: () => const HomePage()),
         ...AppPages.routes,

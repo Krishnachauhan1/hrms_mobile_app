@@ -28,16 +28,14 @@ class MainShellController extends GetxController {
   Future<void> fetchLeaveApplications() async {
     isLeaveLoading = true;
     update();
-
     try {
       final res = await ApiService.get(Apis.leaveApplications);
+
       print('leaves data $res');
 
       if (res["success"] == true) {
         final List data = res["data"];
-
         leaveRequests.clear();
-
         leaveRequests.addAll(
           data
               .map((e) => LeaveRequest.fromJson(e as Map<String, dynamic>))
@@ -47,7 +45,6 @@ class MainShellController extends GetxController {
     } catch (e) {
       print(e);
     }
-
     isLeaveLoading = false;
     update();
   }

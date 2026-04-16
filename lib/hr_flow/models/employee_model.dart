@@ -41,6 +41,66 @@ class Employee {
 
   int get remainingLeaves => totalLeaves - usedLeaves;
 
+  /// ✅ FROM JSON (MAIN FIX)
+  factory Employee.fromJson(Map<String, dynamic> json) {
+    return Employee(
+      id: json['id'].toString(),
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone']?.toString() ?? '',
+
+      // 🔥 role_id → designation
+      designation: "Role ${json['role_id'] ?? ''}",
+
+      // 🔥 organization → department
+      department: json['organization']?['industry_type'] ?? 'N/A',
+
+      // 🔥 created_at → joiningDate
+      joiningDate:
+          DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+
+      // 🔥 custom employee code
+      employeeCode: "EMP${json['id']}",
+
+      // 🔥 salary_structure → salary
+      salary:
+          double.tryParse(
+            json['salary_structure']?['basic_salary']?.toString() ?? '0',
+          ) ??
+          0.0,
+
+      // 🔥 is_active → status
+      status: json['is_active'] == 1 ? "Active" : "Inactive",
+
+      imageUrl: null,
+
+      // 🔥 organization → address
+      address: json['organization']?['city'] ?? 'N/A',
+
+      emergencyContact: "N/A",
+      bloodGroup: "N/A",
+
+      lastLoginTime: null,
+    );
+  }
+
+  /// OPTIONAL: toJson (future use)
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "name": name,
+      "email": email,
+      "phone": phone,
+      "designation": designation,
+      "department": department,
+      "joiningDate": joiningDate.toIso8601String(),
+      "employeeCode": employeeCode,
+      "salary": salary,
+      "status": status,
+      "address": address,
+    };
+  }
+
   Employee copyWith({
     String? id,
     String? name,

@@ -21,13 +21,17 @@ class EmployeeListController extends GetxController {
   Future<void> fetchEmployees() async {
     try {
       final orgId = await ApiService.getOrganizationId();
-      // print("org id = $orgId");
+      print("org id = $orgId");
       if (orgId == null || orgId.isEmpty) {
-        print("org id null");
+        // print("org id null");
         return;
       }
-      final res = await ApiService.get(Apis.organizationbyemployee(orgId));
-      // print('employee daata is======$res');
+      // final url = Apis.allEmployee;
+      final url = Apis.employeesByOrganizations(orgId);
+      // print("API URL: $url");
+      final res = await ApiService.get(url);
+
+      // print('employee data is====== $res');
       if (res["success"] == true) {
         final List data = res["data"];
         _shell.employees.clear();
@@ -37,18 +41,17 @@ class EmployeeListController extends GetxController {
               id: e["id"].toString(),
               name: e["name"] ?? "",
               employeeCode: e["id"].toString(),
-              department: e["organization"]?["organization_name"] ?? "",
-              designation: e["role"] ?? "",
+              department: e["organization"]?["organization_name"] ?? "N/A",
+              designation: e["role"]?["name"] ?? "",
               status: e["is_active"] == 1 ? "Active" : "Inactive",
               isLoggedIn: false,
               email: e["email"] ?? "",
-              phone: e["phone"] ?? "",
-              salary: e["salary_structure"]?["monthly_salary"] != null
-                  ? double.tryParse(
-                          e["salary_structure"]["monthly_salary"].toString(),
-                        ) ??
-                        0
-                  : 0,
+              phone: e["phone"]?.toString() ?? "",
+              salary:
+                  double.tryParse(
+                    e["salary_structure"]?["basic_salary"]?.toString() ?? "0",
+                  ) ??
+                  0,
               joiningDate: e["created_at"] != null
                   ? DateTime.parse(e["created_at"])
                   : DateTime.now(),
@@ -61,7 +64,7 @@ class EmployeeListController extends GetxController {
         update();
       }
     } catch (e) {
-      print("employee error = $e");
+      print("employee error========== $e");
     }
   }
 

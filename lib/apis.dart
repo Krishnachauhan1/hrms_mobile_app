@@ -1,5 +1,5 @@
 class Apis {
-  static const String baseUrl = 'https://hrmsapi.nextlogicsolution.id/api';
+  static const String baseUrl = "https://quicksalary.org/api";
   // static const String baseUrl = 'https://hrmsapi.nextlogicsolution.id/api';
 
   //empoyee login endpoint
@@ -17,8 +17,6 @@ class Apis {
   static String attendanceHistory(int employeeId) =>
       '/attendance/history?employee_id=$employeeId';
 
-  static String organizationbyemployee(String organization_id) =>
-      '/organizations/${organization_id}/employees';
   // leave api
   static const String leaveTypes = '/leave-types';
   static const String leaveApplications = '/leave-applications';
@@ -30,5 +28,7 @@ class Apis {
       '/employees/$employeeId/salary';
 
   //get all the employee by hr
-  // static const employees = "/employees";
+  // static const allEmployee = "/employees";
+  static String employeesByOrganizations(dynamic organizationsId) =>
+      '/organization/$organizationsId/employees';
 }

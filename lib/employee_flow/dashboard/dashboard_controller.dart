@@ -13,9 +13,9 @@ class DashboardController extends GetxController {
 
   String todayStatus = '';
   String checkInTime = '';
+  String checkOutTime = '';
   String workingHours = '';
   bool isLoadingToday = false;
-  bool isLoggingOut = false;
 
   int presentDays = 0;
   int absentDays = 0;
@@ -32,29 +32,27 @@ class DashboardController extends GetxController {
 
   List<Map<String, dynamic>> upcomingLeaves = [];
   bool isLoadingLeaves = false;
+  bool isLoggingOut = false;
 
   @override
   void onInit() {
     super.onInit();
     _loadDashboardData();
-    checkAttendanceStatus();
-    fetchMonthlyAttendance();
-    fetchTotalAttendance();
   }
 
   Future<void> refreshDashboard() async {
     await Future.wait([
-      fetchTodayAttendance(),
+      _fetchTodayFromHistory(),
       fetchAttendanceStats(),
       fetchUpcomingLeaves(),
     ]);
   }
 
   Future<void> _loadDashboardData() async {
-    final authController = Get.find<AuthController>();
     employeeId = await ApiService.getEmployeeId();
 
     if (employeeId == null) {
+      final authController = Get.find<AuthController>();
       employeeName = authController.employee?['name']?.toString() ?? 'Employee';
       employeeInitials = _generateInitials(employeeName);
       employeeRole =
@@ -67,9 +65,11 @@ class DashboardController extends GetxController {
 
     await Future.wait([
       fetchProfile(),
-      fetchTodayAttendance(),
+      _fetchTodayFromHistory(),
       fetchAttendanceStats(),
       fetchUpcomingLeaves(),
+      fetchMonthlyAttendance(),
+      fetchTotalAttendance(),
     ]);
   }
 
@@ -81,80 +81,89 @@ class DashboardController extends GetxController {
     _safeUpdate();
 
     try {
-      final dynamic response = await ApiService.get(Apis.attendanceStatus(id));
-      if (response is Map<String, dynamic>) {
-        final authEmployee = Get.find<AuthController>().employee;
+      final dynamic res = await ApiService.get(Apis.attendanceStatus(id));
+      print('attendanceStatus response is ====== $res');
+
+      if (res is Map<String, dynamic>) {
+        final auth = Get.find<AuthController>().employee;
         employeeName =
-            response['employee_name'] ??
-            authEmployee?['name']?.toString() ??
-            'Employee';
+            res['employee_name'] ?? auth?['name']?.toString() ?? 'Employee';
         employeeRole =
-            authEmployee?['role']?.toString() ??
-            authEmployee?['designation']?.toString() ??
+            auth?['role']?.toString() ??
+            auth?['designation']?.toString() ??
             'Employee';
         employeeInitials = _generateInitials(employeeName);
+        final rawStatus = res['status']?.toString() ?? '';
+        if (rawStatus.isNotEmpty) {
+          todayStatus = formatStatus(rawStatus);
+        }
       }
-
-      isLoadingProfile = false;
-      _safeUpdate();
     } catch (e) {
-      isLoadingProfile = false;
-      _safeUpdate();
+      // print(' fetchProfile==== $e');
     }
+
+    isLoadingProfile = false;
+    _safeUpdate();
   }
 
-  // Today Attendance
-
-  Future<void> fetchTodayAttendance() async {
+  Future<void> _fetchTodayFromHistory() async {
+    final id = employeeId;
+    if (id == null) return;
     isLoadingToday = true;
     _safeUpdate();
-
     try {
-      final dynamic response = await ApiService.get(Apis.attendanceToday);
+      final dynamic res = await ApiService.get(Apis.attendanceHistory(id));
+      print('History response is  $res');
 
-      Map<String, dynamic> data = {};
+      List<dynamic> rawList = [];
+      if (res is Map && res['data'] is List) {
+        rawList = res['data'] as List<dynamic>;
+      } else if (res is List) {
+        rawList = res;
+      }
 
-      if (response is Map<String, dynamic>) {
-        final raw = response['data'];
+      final todayStr = DateTime.now().toUtc().toString().substring(0, 10);
+      final todayLocal = DateTime.now().toString().substring(0, 10);
 
-        if (raw is List) {
-          final employee = raw.firstWhereOrNull((e) {
-            final eId = e['employee_id'];
-            return eId?.toString() == employeeId?.toString();
-          });
+      print(
+        'Looking for date====== $todayStr or $todayLocal, employeeId........ $id',
+      );
+      Map<String, dynamic>? todayRecord;
+      for (final item in rawList) {
+        final map = item as Map<String, dynamic>;
+        final empObj = map['employee'];
+        final empId = empObj is Map
+            ? empObj['id']?.toString()
+            : map['employee_id']?.toString();
 
-          if (employee != null) {
-            data = employee as Map<String, dynamic>;
-          } else {
-            for (final e in raw) {
-              print(
-                '  → employee_id: ${e['employee_id']} (${e['employee_id'].runtimeType})',
-              );
-            }
-          }
-        } else if (raw is Map<String, dynamic>) {
-          data = raw;
-        } else {
-          data = response;
+        if (empId != id.toString()) continue;
+        final loginAt = map['login_at']?.toString() ?? '';
+        if (loginAt.startsWith(todayStr) || loginAt.startsWith(todayLocal)) {
+          todayRecord = map;
+          print('Today record found====== $todayRecord');
+          break;
         }
       }
 
-      // Check-in time
-      final rawLogin = response['date'];
-      checkInTime = rawLogin.isEmpty ? '--:-- --' : _formatTime(rawLogin);
+      if (todayRecord != null) {
+        final loginAt = todayRecord['login_at']?.toString();
+        checkInTime = loginAt != null && loginAt.isNotEmpty
+            ? _formatTime(loginAt)
+            : '--:-- --';
 
-      // Working hours
-      final rawHours = data['total_work_hours'] ?? data['total_hours'];
-      if (rawHours != null) {
-        workingHours = _formatHours(rawHours);
-      } else {
-        final login = data['login_at'] ?? data['login_time'];
-        final logout = data['logout_at'] ?? data['logout_time'];
-        if (login != null && logout != null) {
+        final logoutAt = todayRecord['logout_at']?.toString();
+        checkOutTime = logoutAt != null && logoutAt.isNotEmpty
+            ? _formatTime(logoutAt)
+            : '--:-- --';
+
+        final rawHours = todayRecord['total_work_hours'];
+        if (rawHours != null && rawHours.toString() != 'null') {
+          workingHours = _formatHours(rawHours);
+        } else if (loginAt != null && logoutAt != null) {
           try {
             final diff = DateTime.parse(
-              logout,
-            ).difference(DateTime.parse(login));
+              logoutAt,
+            ).difference(DateTime.parse(loginAt));
             final h = diff.inHours;
             final m = diff.inMinutes % 60;
             workingHours =
@@ -163,140 +172,157 @@ class DashboardController extends GetxController {
             workingHours = '0:00 hrs';
           }
         } else {
-          workingHours = '0:00 hrs';
+          if (loginAt != null) {
+            try {
+              final diff = DateTime.now().difference(DateTime.parse(loginAt));
+              final h = diff.inHours;
+              final m = diff.inMinutes % 60;
+              workingHours =
+                  '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')} hrs';
+            } catch (_) {
+              workingHours = '0:00 hrs';
+            }
+          } else {
+            workingHours = '0:00 hrs';
+          }
         }
-      }
+        if (todayStatus.isEmpty) {
+          todayStatus = logoutAt != null && logoutAt.isNotEmpty
+              ? 'Checked Out'
+              : 'Checked In';
+        }
+        final empObj = todayRecord['employee'];
+        if (empObj is Map && employeeName.isEmpty) {
+          employeeName = empObj['name']?.toString() ?? 'Employee';
+          employeeInitials = _generateInitials(employeeName);
+        }
 
-      isLoadingToday = false;
-      _safeUpdate();
-    } on ApiException catch (e) {
-      if (e.statusCode == 404) {
-        todayStatus = 'Not Marked';
-        checkInTime = '--:-- --';
+        // print(' checkInTime=== $checkInTime');
+        // print(' checkOutTime===$checkOutTime');
+        // print(' workingHours=== $workingHours');
+        // print('todayStatus=== $todayStatus');
+      } else {
+        print('No today record found for employee $id');
+        checkInTime = 'Not Mark';
+        checkOutTime = '--:-- --';
         workingHours = '0:00 hrs';
-      }
-      isLoadingToday = false;
-      _safeUpdate();
-    } catch (e) {
-      isLoadingToday = false;
-      _safeUpdate();
-    }
-  }
-
-  Future<void> checkAttendanceStatus() async {
-    final id = await ApiService.getEmployeeId();
-    if (id == null) return;
-
-    try {
-      final res = await ApiService.get(Apis.attendanceStatus(id));
-      if (res is Map) {
-        final status = (res['status'] ?? '').toString().toLowerCase();
-        todayStatus = status;
-      }
-
-      _safeUpdate();
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  Future<void> fetchMonthlyAttendance() async {
-    isLoadingMonthly = true;
-    update();
-
-    try {
-      final response = await ApiService.get(Apis.attendanceMonthly);
-      if (response != null && response['success'] == true) {
-        monthlyDays = response['total_days'] ?? 0;
-        monthlyHours = double.tryParse(response['total_hours'].toString()) ?? 0;
+        if (todayStatus.isEmpty) todayStatus = 'Not Marked';
       }
     } catch (e) {
-      print("Monthly error is............. $e");
+      print('fetchTodayFromHistory=== $e');
+      checkInTime = '--:-- --';
+      workingHours = '0:00 hrs';
     }
-    isLoadingMonthly = false;
-    update();
+
+    isLoadingToday = false;
+    _safeUpdate();
   }
 
-  Future<void> fetchTotalAttendance() async {
-    isLoadingTotal = true;
-    update();
-    try {
-      final res = await ApiService.get(Apis.attendanceTotal);
-      if (res != null && res['success'] == true) {
-        totalDays = res['total_attendance_days'] ?? 0;
-        totalHours = double.tryParse(res['total_work_hours'].toString()) ?? 0;
-      }
-    } catch (e) {
-      print(e);
-    }
-    isLoadingTotal = false;
-    update();
-  }
-
-  //  Attendance Stats
   Future<void> fetchAttendanceStats() async {
     final id = employeeId;
     if (id == null) return;
     isLoadingStats = true;
     _safeUpdate();
-
     try {
-      final dynamic response = await ApiService.get(Apis.attendanceHistory(id));
+      final dynamic res = await ApiService.get(Apis.attendanceHistory(id));
+      print('fetching the attendance stats response is == $res');
       List<dynamic> rawList = [];
-      if (response is List) {
-        rawList = response;
-      } else if (response is Map && response['data'] != null) {
-        rawList = response['data'] as List<dynamic>;
+      if (res is Map && res['data'] is List) {
+        rawList = res['data'] as List<dynamic>;
+      } else if (res is List) {
+        rawList = res;
       }
-
       presentDays = 0;
       absentDays = 0;
       leaveDays = 0;
-
       final Set<String> counted = {};
-
       for (final item in rawList) {
         final map = item as Map<String, dynamic>;
-        final date = map['date']?.toString() ?? '';
-        final status = (map['status'] as String? ?? '').toLowerCase();
-
-        if (counted.contains(date)) continue;
-        counted.add(date);
-
-        if (status.contains('logged') ||
-            status.contains('present') ||
-            status == 'checked_in' ||
-            status == 'checked_out') {
+        final empObj = map['employee'];
+        final empId = empObj is Map
+            ? empObj['id']?.toString()
+            : map['employee_id']?.toString();
+        if (empId != id.toString()) continue;
+        final loginAt = map['login_at']?.toString() ?? '';
+        final dateKey = loginAt.isNotEmpty
+            ? loginAt.substring(0, 10)
+            : map['date']?.toString() ?? '';
+        if (dateKey.isEmpty || counted.contains(dateKey)) continue;
+        counted.add(dateKey);
+        if (loginAt.isNotEmpty) {
           presentDays++;
-        } else if (status.contains('not_logged') ||
-            status.contains('absent') ||
-            status.contains('not_marked')) {
-          absentDays++;
-        } else if (status.contains('leave')) {
-          leaveDays++;
         }
       }
-      isLoadingStats = false;
-      _safeUpdate();
+
+      // print('present $presentDays');
     } catch (e) {
-      isLoadingStats = false;
-      _safeUpdate();
+      // print('fetchAttendanceStats== $e');
     }
+
+    isLoadingStats = false;
+    _safeUpdate();
   }
 
-  //  Upcoming Leaves
+  Future<void> fetchMonthlyAttendance() async {
+    isLoadingMonthly = true;
+    _safeUpdate();
+
+    try {
+      final res = await ApiService.get(Apis.attendanceMonthly);
+      print('Monthly user attendace data is === $res');
+      if (res != null && res['success'] == true) {
+        monthlyDays = res['total_days'] ?? 0;
+        monthlyHours = double.parse(
+          (double.tryParse(res['total_hours'].toString()) ?? 0).toStringAsFixed(
+            2,
+          ),
+        );
+      }
+    } catch (e) {
+      // print(' fetchMonthlyAttendance  === $e');
+    }
+
+    isLoadingMonthly = false;
+    _safeUpdate();
+  }
+
+  // Total Attendance
+  Future<void> fetchTotalAttendance() async {
+    isLoadingTotal = true;
+    _safeUpdate();
+
+    try {
+      final res = await ApiService.get(Apis.attendanceTotal);
+      print('Total user working days response $res');
+      if (res != null && res['success'] == true) {
+        totalDays = res['total_attendance_days'] ?? 0;
+        totalHours = double.tryParse(res['total_work_hours'].toString()) ?? 0;
+        if (workingHours == '0:00 hrs' || workingHours.isEmpty) {
+          workingHours = _formatHours(totalHours);
+        }
+      }
+    } catch (e) {
+      // print('fetchTotalAttendance: $e');
+    }
+
+    isLoadingTotal = false;
+    _safeUpdate();
+  }
+
+  // Upcoming Leaves
   Future<void> fetchUpcomingLeaves() async {
     isLoadingLeaves = true;
     _safeUpdate();
 
     try {
-      final dynamic response = await ApiService.get(Apis.leaveApplications);
+      final dynamic res = await ApiService.get(Apis.leaveApplications);
       List<dynamic> rawList = [];
-      if (response is List) {
-        rawList = response;
-      } else if (response is Map && response['data'] != null) {
-        rawList = response['data'] as List<dynamic>;
+      if (res is List) {
+        rawList = res;
+      } else if (res is Map && res['data'] != null) {
+        rawList = res['data'] as List<dynamic>;
       }
+
       final today = DateTime.now();
       final filtered =
           rawList.map((e) => e as Map<String, dynamic>).where((item) {
@@ -314,7 +340,6 @@ class DashboardController extends GetxController {
             final bDate = DateTime.tryParse(b['from_date'] ?? '') ?? today;
             return aDate.compareTo(bDate);
           });
-
       upcomingLeaves = filtered.map((item) {
         final typeRaw = item['leave_type'];
         final typeName = typeRaw is Map
@@ -323,7 +348,6 @@ class DashboardController extends GetxController {
 
         final fromDate = item['from_date'] as String? ?? '';
         final toDate = item['to_date'] as String? ?? '';
-
         int days = 1;
         try {
           final from = DateTime.parse(fromDate);
@@ -342,15 +366,15 @@ class DashboardController extends GetxController {
           'status': _capitalize(item['status'] as String? ?? ''),
         };
       }).toList();
-      isLoadingLeaves = false;
-      _safeUpdate();
     } catch (e) {
-      isLoadingLeaves = false;
-      _safeUpdate();
+      // print('fetchUpcomingLeaves $e');
     }
+
+    isLoadingLeaves = false;
+    _safeUpdate();
   }
 
-  //  Logout
+  // Logout
   Future<void> logout() async {
     isLoggingOut = true;
     update();
@@ -436,15 +460,34 @@ class DashboardController extends GetxController {
   String _capitalize(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
+  String formatStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'checked_in':
+      case 'logged_in':
+        return 'Checked In';
+      case 'checked_out':
+      case 'logged_out':
+        return 'Checked Out';
+      case 'not_logged_in':
+        return 'Login Pending';
+      case 'absent':
+        return 'Absent';
+      default:
+        return 'Not Marked';
+    }
+  }
+
   Color get todayStatusColor {
     switch (todayStatus.toLowerCase()) {
-      case 'present':
       case 'checked in':
       case 'logged in':
         return Colors.white;
+      case 'checked out':
+        return const Color(0xFFFFD700);
       case 'absent':
         return const Color(0xFFFF7675);
       case 'not marked':
+      case 'login pending':
         return const Color(0xFFFDAA2B);
       default:
         return Colors.white;

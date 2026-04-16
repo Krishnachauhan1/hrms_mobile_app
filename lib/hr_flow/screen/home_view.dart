@@ -395,7 +395,7 @@ class _TodaySnapshot extends StatelessWidget {
                     foregroundColor: Colors.orange,
                     padding: EdgeInsets.zero,
                   ),
-                  child: const Text('View All →'),
+                  child: const Text('View All'),
                 ),
               ],
             ),

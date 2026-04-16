@@ -36,33 +36,39 @@ class AuthController extends GetxController {
     update();
 
     try {
-    final data = await ApiService.login(email: email, password: password);
-    print(data);
-    final token = data["token"];
-    final employee = data["employee"] ?? data["user"] ?? data["data"];
-    //token
+      final data = await ApiService.login(email: email, password: password);
+      print(data);
+      final token = data["token"];
+      final employee = data["employee"] ?? data["user"] ?? data["data"];
+      //token
 
-    if (token != null) {
-      await ApiService.saveToken(token);
-    }
-    // employee
-    if (employee != null) {
-      await ApiService.saveEmployee(employee);
-    }
-    //organization id
-    if (employee != null && employee["organization_id"] != null) {
-      await ApiService.saveOrganizationId(
-        employee["organization_id"].toString(),
-      );
-    }
-    if (data['employee']['role'] == 'Employee') {
-      Get.offAllNamed("/home");
-    } else {
-      Get.offAllNamed(AppRoutes.MAIN_SHELL);
-    }
+      if (token != null) {
+        await ApiService.saveToken(token);
+        print("TOKEN SAVED === $token");
+      }
+      final savedToken = await ApiService.getToken();
+      print("AFTER LOGIN TOKEN === $savedToken");
+      // employee
+      if (employee != null) {
+        await ApiService.saveEmployee(employee);
+      }
+      //organization id
+      if (employee != null && employee["organization_id"] != null) {
+        await ApiService.saveOrganizationId(
+          employee["organization_id"].toString(),
+        );
+      }
+      // print('print the data of login user ===$data');
+      final roleId = employee?["role_id"];
+      // print("ROLE ID = $roleId");
+      if (roleId == 3) {
+        Get.offAllNamed("/home");
+      } else {
+        Get.offAllNamed(AppRoutes.MAIN_SHELL);
+      }
     } catch (e) {
       print('error is $e');
-    _showError("Login failed $e");
+      _showError("Please check your id & password $e");
     }
 
     isLoginLoading = false;

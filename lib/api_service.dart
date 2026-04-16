@@ -176,6 +176,7 @@ class ApiService {
     print(url);
     final headers = await _buildHeaders(withAuth: false);
     final body = jsonEncode({'email': email, 'password': password});
+    print('the user login is ==$body');
     try {
       final response = await http
           .post(url, headers: headers, body: body)
@@ -193,10 +194,13 @@ class ApiService {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders();
     print(headers);
+
     try {
       final response = await http
           .get(url, headers: headers)
           .timeout(_requestTimeout);
+      print('print body===${response.body}');
+      print('print body request===${response.request}');
       return _handleResponse(response);
     } on TimeoutException {
       throw ApiException(

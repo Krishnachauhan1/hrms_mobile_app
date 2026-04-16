@@ -339,6 +339,7 @@ class DashboardPage extends StatelessWidget {
                       'Check In',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
+
                     const SizedBox(height: 4),
                     controller.isLoadingToday
                         ? const Text(
@@ -419,9 +420,11 @@ class DashboardPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AttendancePage()),
-                ).then((_) {
-                  final controller = Get.find<DashboardController>();
-                  controller.refreshDashboard();
+                ).then((value) {
+                  if (value == true) {
+                    final controller = Get.find<DashboardController>();
+                    controller.fetchTotalAttendance();
+                  }
                 }),
           ),
         ),

@@ -4,85 +4,74 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/apis.dart';
-
+import 'package:intl/intl.dart';
 
 class AttendanceRecord {
   final String date;
-  final String? loginTime;
-  final String? logoutTime;
+  // final String? loginTime;
+  // final String? logoutTime;
+  final String loginAt;
+  final String? logoutAt;
   final String? totalHours;
   final bool isPresent;
   final String status;
 
   AttendanceRecord({
     required this.date,
-    this.loginTime,
-    this.logoutTime,
+    // this.loginTime,
+    // this.logoutTime,
+    required this.loginAt,
+    this.logoutAt,
     this.totalHours,
     required this.isPresent,
     this.status = '',
   });
 
   factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
-    final rawStatus = (json['status'] as String? ?? '').toLowerCase();
-    final bool present =
-        rawStatus.contains('logged') ||
-        rawStatus.contains('present') ||
-        rawStatus == 'checked_in' ||
-        rawStatus == 'checked_out' ||
-        rawStatus == 'half_day' ||
-        (json['is_present'] == true);
-
-    final loginRaw =
-        json['login_time'] as String? ??
-        json['login_at'] as String? ??
-        json['check_in'] as String?;
-
+    final loginRaw = json['login_time'] ?? json['login_at'] ?? json['check_in'];
     final logoutRaw =
-        json['logout_time'] as String? ??
-        json['logout_at'] as String? ??
-        json['check_out'] as String?;
-
+        json['logout_time'] ?? json['logout_at'] ?? json['check_out'];
+    final bool present = loginRaw != null;
+    String date = loginRaw ?? '';
     String? totalHours;
     if (loginRaw != null && logoutRaw != null) {
       totalHours =
-          json['total_hours'] as String? ??
-          json['total_work_hours'] as String? ??
+          json['total_work_hours']?.toString() ??
           _calcHours(loginRaw, logoutRaw);
     }
-
     return AttendanceRecord(
-      date: json['date'] as String? ?? '',
-      loginTime: loginRaw != null ? _formatTime(loginRaw) : null,
-      logoutTime: logoutRaw != null ? _formatTime(logoutRaw) : null,
+      date: date,
+      loginAt: json['login_at'],
+      logoutAt: json['logout_at'],
+      // loginTime: loginRaw != null ? _formatTime(loginRaw) : null,
+      // logoutTime: logoutRaw != null ? _formatTime(logoutRaw) : null,
       totalHours: totalHours,
       isPresent: present,
-      status: rawStatus,
     );
   }
 
-  static String _formatTime(String raw) {
-    try {
-      if (raw.contains('T') || (raw.contains('-') && raw.length > 8)) {
-        final dt = DateTime.parse(raw).toLocal();
-        int h = dt.hour;
-        final m = dt.minute.toString().padLeft(2, '0');
-        final suffix = h >= 12 ? 'PM' : 'AM';
-        if (h > 12) h -= 12;
-        if (h == 0) h = 12;
-        return '${h.toString().padLeft(2, '0')}:$m $suffix';
-      }
-      final parts = raw.split(':');
-      int h = int.parse(parts[0]);
-      final m = parts[1];
-      final suffix = h >= 12 ? 'PM' : 'AM';
-      if (h > 12) h -= 12;
-      if (h == 0) h = 12;
-      return '${h.toString().padLeft(2, '0')}:$m $suffix';
-    } catch (_) {
-      return raw;
-    }
-  }
+  // static String _formatTime(String raw) {
+  //   try {
+  //     if (raw.contains('T') || (raw.contains('-') && raw.length > 8)) {
+  //       final dt = DateTime.parse(raw).toLocal();
+  //       int h = dt.hour;
+  //       final m = dt.minute.toString().padLeft(2, '0');
+  //       final suffix = h >= 12 ? 'PM' : 'AM';
+  //       if (h > 12) h -= 12;
+  //       if (h == 0) h = 12;
+  //       return '${h.toString().padLeft(2, '0')}:$m $suffix';
+  //     }
+  //     final parts = raw.split(':');
+  //     int h = int.parse(parts[0]);
+  //     final m = parts[1];
+  //     final suffix = h >= 12 ? 'PM' : 'AM';
+  //     if (h > 12) h -= 12;
+  //     if (h == 0) h = 12;
+  //     return '${h.toString().padLeft(2, '0')}:$m $suffix';
+  //   } catch (_) {
+  //     return raw;
+  //   }
+  // }
 
   static String _calcHours(String login, String logout) {
     try {
@@ -134,12 +123,17 @@ class AttendanceRecord {
 class AttendanceController extends GetxController with WidgetsBindingObserver {
   int? employeeId;
 
-  //  Camera
+  // Camera
   CameraController? cameraController;
   bool isCameraInitialized = false;
   bool isCameraReady = false;
-  bool _isCameraDisposed = false;
+  bool _isCameraDisposed = true;
   bool isCameraOpen = false;
+
+  // QR Scanner state
+  bool isQrScannerOpen = false;
+  String? lastScannedQrData;
+  bool isProcessingQr = false;
 
   // UI State
   bool isScanning = false;
@@ -149,18 +143,15 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   String? markedTime;
   bool isCheckedIn = false;
 
-  //  Today Record
+  // Today Record
   Map<String, dynamic>? todayRecord = {};
   bool isLoadingToday = false;
 
-  //  History
+  // History
   List<AttendanceRecord> historyList = [];
   bool isLoadingHistory = false;
 
   Map<String, dynamic>? attendanceResult;
-  String? viewMode;
-  VoidCallback toggleViewMode = () {};
-  DateTime? selectedDate;
 
   @override
   void onInit() {
@@ -171,13 +162,11 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _loadAttendanceData() async {
     employeeId = await ApiService.getEmployeeId();
-
     if (employeeId == null) {
       errorMessage = 'Employee ID not found. Please login again.';
       _safeUpdate();
       return;
     }
-
     await Future.wait([
       checkAttendanceStatus(),
       fetchTodayAttendance(),
@@ -185,16 +174,50 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     ]);
   }
 
-  // Lifecycle
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
       _safeDisposeCamera();
+    } else if (state == AppLifecycleState.resumed && isCameraOpen) {
+      _initCamera();
     }
   }
 
-  // Camera
+  void openQrScanner() {
+    if (isProcessingQr) return;
+    isQrScannerOpen = true;
+    lastScannedQrData = null;
+    errorMessage = null;
+    _safeUpdate();
+  }
+
+  void closeQrScanner() {
+    isQrScannerOpen = false;
+    isProcessingQr = false;
+    _safeUpdate();
+  }
+
+  Future<void> onQrScanned(String qrData) async {
+    if (isProcessingQr || qrData.isEmpty) return;
+    isProcessingQr = true;
+    lastScannedQrData = qrData;
+    _safeUpdate();
+
+    isQrScannerOpen = false;
+    _safeUpdate();
+
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (isCheckedIn) {
+      await _markLogoutWithQr(qrData);
+    } else {
+      await _markLoginWithQr(qrData);
+    }
+
+    isProcessingQr = false;
+    _safeUpdate();
+  }
+
   Future<void> openCameraForScan() async {
     if (isCameraOpen) return;
     isCameraOpen = true;
@@ -209,11 +232,21 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _initCamera() async {
+    if (!_isCameraDisposed &&
+        cameraController != null &&
+        cameraController!.value.isInitialized) {
+      return;
+    }
+
     _isCameraDisposed = false;
+    isCameraInitialized = false;
+    isCameraReady = false;
+    _safeUpdate();
+
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
-        errorMessage = 'No camera found.';
+        errorMessage = 'No camera found on this device.';
         isCameraOpen = false;
         _safeUpdate();
         return;
@@ -224,9 +257,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
             (c) => c.lensDirection == CameraLensDirection.front,
           ) ??
           cameras.first;
-
-      await _safeDisposeCamera();
+      await _safeDisposeCamera(skipFlagReset: true);
       if (isClosed) return;
+
       _isCameraDisposed = false;
       cameraController = CameraController(
         frontCamera,
@@ -234,6 +267,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         enableAudio: false,
         imageFormatGroup: ImageFormatGroup.jpeg,
       );
+
       await cameraController!.initialize();
       if (_isCameraDisposed || isClosed) {
         await _safeDisposeCamera();
@@ -245,52 +279,73 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       errorMessage = null;
       _safeUpdate();
     } on CameraException catch (e) {
-      errorMessage = 'Camera error: ${e.description}';
+      final desc = e.description ?? 'Unknown camera error';
+      if (desc.toLowerCase().contains('permission')) {
+        errorMessage = 'Camera permission denied. Please enable in settings.';
+      } else {
+        errorMessage = 'Camera error: $desc';
+      }
       isCameraReady = false;
       isCameraOpen = false;
+      _isCameraDisposed = true;
       _safeUpdate();
     } catch (e) {
-      errorMessage = 'Camera not available.';
+      errorMessage = 'Camera unavailable. Please try again.';
       isCameraReady = false;
       isCameraOpen = false;
+      _isCameraDisposed = true;
       _safeUpdate();
     }
   }
 
-  Future<void> _safeDisposeCamera() async {
-    if (_isCameraDisposed) return;
+  Future<void> _safeDisposeCamera({bool skipFlagReset = false}) async {
+    if (_isCameraDisposed && !skipFlagReset) return;
     _isCameraDisposed = true;
-    isCameraInitialized = false;
-    isCameraReady = false;
-    try {
-      await cameraController?.dispose();
-    } catch (_) {
-    } finally {
-      cameraController = null;
+    if (!skipFlagReset) {
+      isCameraInitialized = false;
+      isCameraReady = false;
     }
+    final ctrl = cameraController;
+    cameraController = null;
+    try {
+      await ctrl?.dispose();
+    } catch (_) {}
   }
 
-  // Photo capture
   Future<String?> _capturePhoto() async {
+    const maxWait = 5000;
     int waited = 0;
-    while ((cameraController == null ||
-            !cameraController!.value.isInitialized) &&
-        waited < 4000) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      waited += 200;
+    while (waited < maxWait) {
+      if (cameraController != null &&
+          cameraController!.value.isInitialized &&
+          !_isCameraDisposed) {
+        break;
+      }
+      await Future.delayed(const Duration(milliseconds: 300));
+      waited += 300;
     }
-    if (cameraController == null || !cameraController!.value.isInitialized) {
+
+    if (cameraController == null ||
+        !cameraController!.value.isInitialized ||
+        _isCameraDisposed) {
+      errorMessage = 'Camera not ready. Please try again.';
+      _safeUpdate();
       return null;
     }
 
     try {
       isCapturing = true;
       _safeUpdate();
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(const Duration(milliseconds: 800));
       final XFile photo = await cameraController!.takePicture();
       isCapturing = false;
       _safeUpdate();
       return photo.path;
+    } on CameraException catch (e) {
+      isCapturing = false;
+      errorMessage = 'Photo capture failed: ${e.description}';
+      _safeUpdate();
+      return null;
     } catch (e) {
       isCapturing = false;
       _safeUpdate();
@@ -298,30 +353,54 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  // Location
   Future<Position?> _getLocation() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      errorMessage = 'Location permission denied.';
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        errorMessage = 'Location services are disabled.';
+        _safeUpdate();
+        return null;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        errorMessage = 'Location permission denied.';
+        _safeUpdate();
+        return null;
+      }
+
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          errorMessage = 'Location timed out. Check GPS signal.';
+          _safeUpdate();
+          throw Exception('Location timeout');
+        },
+      );
+    } catch (e) {
+      errorMessage = 'Could not get location. Try again.';
       _safeUpdate();
       return null;
     }
-    return Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
   }
 
-  // Public actions
   Future<void> startCheckIn() async {
     if (isScanning) return;
     errorMessage = null;
     _safeUpdate();
     await openCameraForScan();
+    await Future.delayed(const Duration(milliseconds: 800));
     await _markLogin();
+    if (isUserLoggedIn) {
+      print("Already logged in");
+      return;
+    }
   }
 
   Future<void> startCheckOut() async {
@@ -329,11 +408,11 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     errorMessage = null;
     _safeUpdate();
     await openCameraForScan();
+    await Future.delayed(const Duration(milliseconds: 800));
     await _markLogout();
   }
 
-  // PUCH IN
-  Future<void> _markLogin() async {
+  Future<void> _markLogin({Map<String, String> extraFields = const {}}) async {
     isScanning = true;
     _safeUpdate();
     try {
@@ -343,38 +422,48 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         await _closeCamera();
         return;
       }
-      // camera ready hone ka wait
-      final photoPath = await _capturePhoto();
-      if (photoPath == null) {
-        errorMessage = 'Could not capture photo. Please try again.';
+      if (position.accuracy > 50) {
+        errorMessage = "Low GPS accuracy. Move to open area.";
         isScanning = false;
         await _closeCamera();
         _safeUpdate();
         return;
       }
+
+      final photoPath = await _capturePhoto();
+      if (photoPath == null) {
+        isScanning = false;
+        await _closeCamera();
+        return;
+      }
+
+      final fields = {
+        'login_type': extraFields.containsKey('qr_code') ? 'qr' : 'face',
+        'latitude': position.latitude.toString(),
+        'longitude': position.longitude.toString(),
+        ...extraFields,
+      };
+      print("==========LATITUDE==========${position.latitude}");
+      print("=======LONGITUDE ===== ${position.longitude}");
+      print("==========ACCURACY=========${position.accuracy}");
       final dynamic response = await ApiService.postMultipart(
         Apis.attendanceLogin,
-        fields: {
-          'login_type': 'face',
-          'latitude': position.latitude.toString(),
-          'longitude': position.longitude.toString(),
-        },
+        fields: fields,
         filePath: photoPath,
-        fileField: 'photo',
+        fileField: 'image',
       );
+      print('user attendance postion of ===$response');
       attendanceResult = response as Map<String, dynamic>;
       markedTime = TimeOfDay.now().format(Get.context!);
       isCheckedIn = true;
       isScanning = false;
       isRecognized = true;
-
       await _closeCamera();
       _safeUpdate();
       _showSuccess('Punched IN at $markedTime');
-
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
-
+      await checkAttendanceStatus();
       await Future.delayed(const Duration(seconds: 3));
       if (isClosed) return;
       isRecognized = false;
@@ -394,45 +483,43 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     } catch (e) {
       isScanning = false;
       await _closeCamera();
-      errorMessage = 'Something went wrong. Try again.';
+      errorMessage = 'Check-in failed. Try again.';
       _safeUpdate();
-      _showError('Network error. Check your connection.');
+      _showError(errorMessage!);
     }
   }
 
-  // PUNCH OUT
-  Future<void> _markLogout() async {
+  Future<void> _markLogout({Map<String, String> extraFields = const {}}) async {
     isScanning = true;
     _safeUpdate();
-
     try {
       final position = await _getLocation();
       if (position == null) {
         isScanning = false;
         await _closeCamera();
-        _safeUpdate();
         return;
       }
 
-      //  basic photo capture
       final photoPath = await _capturePhoto();
       if (photoPath == null) {
-        errorMessage = 'Could not capture photo. Please try again.';
         isScanning = false;
         await _closeCamera();
-        _safeUpdate();
         return;
       }
 
-      final dynamic response = await ApiService.postMultipart(
+      final fields = {
+        'latitude': position.latitude.toString(),
+        'longitude': position.longitude.toString(),
+        ...extraFields,
+      };
+
+      await ApiService.postMultipart(
         Apis.attendanceLogout,
-        fields: {
-          'latitude': position.latitude.toString(),
-          'longitude': position.longitude.toString(),
-        },
+        fields: fields,
         filePath: photoPath,
-        fileField: 'photo',
+        fileField: 'image',
       );
+
       isCheckedIn = false;
       isScanning = false;
       isRecognized = true;
@@ -442,61 +529,58 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       _showSuccess('Punched Out at $markedTime');
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
-
       await Future.delayed(const Duration(seconds: 3));
       if (isClosed) return;
       isRecognized = false;
       _safeUpdate();
     } on ApiException catch (e) {
+      print("the logot user error is ====$e");
       isScanning = false;
       await _closeCamera();
       errorMessage = e.message;
       _safeUpdate();
       _showError(e.message);
     } catch (e) {
+      print("the logot user error message is ====$e");
       isScanning = false;
       await _closeCamera();
-      errorMessage = 'Logout failed. Try again.';
+      errorMessage = 'Check-out failed. Try again.';
       _safeUpdate();
-      _showError('Network error. Check your connection.');
+      _showError(errorMessage!);
     }
   }
 
-  //ATTENDANCE STATUS
-  // Future<void> checkAttendanceStatus() async {
-  //   final id = employeeId;
-  //   if (id == null) return;
-  //   try {
-  //     final res = await ApiService.get(Apis.attendanceStatus(id));
-  //     print('employees attendance status.................. $res');
+  Future<void> uploadProfileImage(String path) async {
+    await ApiService.postMultipart(
+      '/api/upload-profile-image',
+      fields: {},
+      filePath: path,
+      fileField: 'profile_image',
+    );
+  }
 
-  //     if (res is Map) {
-  //       isCheckedIn =
-  //           res['checked_in'] ??
-  //           res['data']?['checked_in'] ??
-  //           res['is_checked_in'] ??
-  //           false;
+  Future<void> _markLoginWithQr(String qrData) async {
+    errorMessage = null;
+    _safeUpdate();
+    await openCameraForScan();
+    await Future.delayed(const Duration(milliseconds: 800));
+    await _markLogin(extraFields: {'qr_code': qrData});
+  }
 
-  //       final status = (res['status'] as String? ?? '').toLowerCase();
-  //       if (status.isNotEmpty) {
-  //         isCheckedIn =
-  //             isCheckedIn ||
-  //             status == 'checked_in' ||
-  //             status.contains('logged_in');
-  //       }
-  //     }
-  //     print('employee isCheckedIn ==================== $isCheckedIn');
-  //     _safeUpdate();
-  //   } catch (e) {
-  //     print('error in status................ $e');
-  //   }
-  // }
+  Future<void> _markLogoutWithQr(String qrData) async {
+    errorMessage = null;
+    _safeUpdate();
+    await openCameraForScan();
+    await Future.delayed(const Duration(milliseconds: 800));
+    await _markLogout(extraFields: {'qr_code': qrData});
+  }
+
   Future<void> checkAttendanceStatus() async {
     final id = employeeId;
     if (id == null) return;
-
     try {
       final res = await ApiService.get(Apis.attendanceStatus(id));
+      print('user respone of present attendance ====$res');
       if (res is Map) {
         final status = (res['status'] ?? '').toString().toLowerCase();
         switch (status) {
@@ -505,75 +589,109 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
           case 'present':
             isCheckedIn = true;
             break;
-          case 'not_logged_in':
-          case 'absent':
           default:
             isCheckedIn = false;
         }
       }
       _safeUpdate();
     } catch (e) {
-      print(e);
+      debugPrint('Status check error: $e');
     }
   }
-  // TODAY ATTENDACE
 
   Future<void> fetchTodayAttendance() async {
     isLoadingToday = true;
     _safeUpdate();
     try {
       final dynamic response = await ApiService.get(Apis.attendanceToday);
+      print('Today attendance data is =====================$response');
       if (response is Map<String, dynamic>) {
         todayRecord = response['data'] is Map
             ? response['data'] as Map<String, dynamic>
             : response;
       }
-      isLoadingToday = false;
-      _safeUpdate();
     } catch (e) {
+      debugPrint('Today attendance error: $e');
+    } finally {
       isLoadingToday = false;
       _safeUpdate();
     }
   }
 
-  //  History
-
   Future<void> fetchAttendanceHistory() async {
+    final today = DateTime.now();
     final id = employeeId;
     if (id == null) return;
     isLoadingHistory = true;
     _safeUpdate();
-
     try {
       final dynamic response = await ApiService.get(Apis.attendanceHistory(id));
+      print('History of user attendance === $response');
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
       } else if (response is Map && response['data'] != null) {
         rawList = response['data'] as List<dynamic>;
       }
-
-      // Debug: har record print karo
-      for (final r in rawList) {
-        print('look the employee record............ $r');
-      }
-
       historyList = rawList
           .map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
           .toList();
-
-      // Latest pehle
-      historyList.sort((a, b) => b.date.compareTo(a.date));
-      for (final r in historyList) {
-        print(' ${r.date} | ${r.status} | present:${r.isPresent}');
+      historyList.sort((a, b) {
+        try {
+          return DateTime.parse(b.loginAt).compareTo(DateTime.parse(a.loginAt));
+        } catch (e) {
+          print("Sorting error: $e");
+          return 0;
+        }
+      });
+      for (var item in historyList) {
+        try {
+          final loginDate = DateTime.parse(item.loginAt).toLocal();
+          if (loginDate.year == today.year &&
+              loginDate.month == today.month &&
+              loginDate.day == today.day) {
+            print("TODAY attendance RECORD FOUND");
+            print("Login: ${formatDateTime(item.loginAt)}");
+            print(
+              "Logout: ${item.logoutAt != null ? formatDateTime(item.logoutAt!) : "Not logged out"}",
+            );
+            print(
+              "===========today attendance recode by date=========$loginDate",
+            );
+          }
+        } catch (e) {
+          print("Error parsing date: $e");
+        }
       }
-
-      isLoadingHistory = false;
-      _safeUpdate();
     } catch (e) {
+      debugPrint('History fetch error: $e');
+    } finally {
       isLoadingHistory = false;
       _safeUpdate();
     }
+  }
+
+  bool get isUserLoggedIn {
+    final today = DateTime.now();
+
+    for (var item in historyList) {
+      try {
+        final loginDate = DateTime.parse(item.loginAt).toLocal();
+
+        if (loginDate.year == today.year &&
+            loginDate.month == today.month &&
+            loginDate.day == today.day) {
+          return item.logoutAt == null;
+        }
+      } catch (_) {}
+    }
+
+    return false;
+  }
+
+  String formatDateTime(String dateTime) {
+    final dt = DateTime.parse(dateTime).toLocal();
+    return DateFormat('dd MMM yyyy, hh:mm a').format(dt);
   }
 
   void _safeUpdate() {

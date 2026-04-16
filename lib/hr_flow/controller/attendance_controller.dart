@@ -46,6 +46,7 @@ class AttendanceController extends GetxController {
   Future<void> fetchTodayAttendance() async {
     try {
       final res = await ApiService.get(Apis.attendanceToday);
+      print('the final response of data is ========$res');
       final String dateStr = res["date"];
       final DateTime apiDate = DateTime.parse(dateStr);
       selectedDate = apiDate;
@@ -74,16 +75,17 @@ class AttendanceController extends GetxController {
       if (firstId != null) {
         loadEmployeeStatus(firstId!);
       }
-
       update();
-    } catch (e) {}
+    } catch (e) {
+      print('the error ==========$e');
+    }
   }
 
   //  Monthly ─
   Future<void> fetchMonthlyAttendance(int month, int year) async {
     try {
       final res = await ApiService.get(Apis.attendanceMonthly);
-      // print("employe monthly attendance data is =====$res");
+      print("employe monthly attendance data is =====$res");
       monthlyMonth = res["month"] ?? 0;
       monthlyDays = res["total_days"] ?? 0;
       monthlyHours = (res["total_hours"] ?? 0).toDouble();
@@ -97,7 +99,7 @@ class AttendanceController extends GetxController {
   Future<void> fetchAttendanceTotal() async {
     try {
       final res = await ApiService.get(Apis.attendanceTotal);
-      // print("employe  Total Attendance data is =====$res");
+      print("employe  Total Attendance data is =====$res");
       totalEmployeeId = res["employee_id"] ?? 0;
       totalAttendanceDays = res["total_attendance_days"] ?? 0;
       totalWorkHours = (res["total_work_hours"] ?? 0).toDouble();
@@ -111,7 +113,7 @@ class AttendanceController extends GetxController {
   Future<void> loadEmployeeStatus(int employeeId) async {
     try {
       final res = await ApiService.get(Apis.attendanceStatus(employeeId));
-      // print("employe employee status data is =====$res");
+      print("employe employee status data is =====$res");
       currentEmployeeId = res["employee_id"] ?? 0;
       currentEmployeeName = res["employee_name"] ?? "";
       currentStatus = _mapStatus(res["status"]);
@@ -124,7 +126,7 @@ class AttendanceController extends GetxController {
   Future<void> fetchHistory(int employeeId) async {
     try {
       final res = await ApiService.get(Apis.attendanceHistory(employeeId));
-      // print("history res ========== $res");
+      print("history res ========== $res");
       historyRecords.clear();
       List list = res["data"];
       for (var e in list) {
@@ -266,6 +268,7 @@ class AttendanceController extends GetxController {
     DateTime? checkOutTime,
     String? remarks,
   }) {
+    print("Adding attendance for $employeeId");
     if (employeeId.isEmpty || employees.isEmpty) {
       Get.snackbar(
         'Error',
@@ -302,9 +305,7 @@ class AttendanceController extends GetxController {
       status: status,
       remarks: remarks,
     );
-
     records.add(newRecord);
-
     _shell.attendanceRecords
       ..removeWhere(
         (r) =>
@@ -314,7 +315,6 @@ class AttendanceController extends GetxController {
             r.date.day == cleanDate.day,
       )
       ..add(newRecord);
-
     selectedDate = cleanDate;
     selectedEmployeeId = '';
     update();
@@ -573,7 +573,7 @@ class AttendanceController extends GetxController {
                             builder: (c) {
                               return _TimePickerField(
                                 time: formCheckIn,
-                                hint: '--:-- --',
+                                hint: 'Not Mark Yet',
                                 onTap: () async {
                                   final t = await showTimePicker(
                                     context: Get.context!,
@@ -747,6 +747,7 @@ class AttendanceController extends GetxController {
 
   //  Employee History Dialog
   void showEmployeeHistory(String empId, String name, String dept) {
+    print('user attendance data s');
     final history = historyRecords;
 
     Get.dialog(
