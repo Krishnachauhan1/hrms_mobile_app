@@ -4,19 +4,24 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/apis.dart';
+import 'package:intl/intl.dart';
 
 class AttendanceRecord {
   final String date;
-  final String? loginTime;
-  final String? logoutTime;
+  // final String? loginTime;
+  // final String? logoutTime;
+  final String loginAt;
+  final String? logoutAt;
   final String? totalHours;
   final bool isPresent;
   final String status;
 
   AttendanceRecord({
     required this.date,
-    this.loginTime,
-    this.logoutTime,
+    // this.loginTime,
+    // this.logoutTime,
+    required this.loginAt,
+    this.logoutAt,
     this.totalHours,
     required this.isPresent,
     this.status = '',
@@ -36,35 +41,37 @@ class AttendanceRecord {
     }
     return AttendanceRecord(
       date: date,
-      loginTime: loginRaw != null ? _formatTime(loginRaw) : null,
-      logoutTime: logoutRaw != null ? _formatTime(logoutRaw) : null,
+      loginAt: json['login_at'],
+      logoutAt: json['logout_at'],
+      // loginTime: loginRaw != null ? _formatTime(loginRaw) : null,
+      // logoutTime: logoutRaw != null ? _formatTime(logoutRaw) : null,
       totalHours: totalHours,
       isPresent: present,
     );
   }
 
-  static String _formatTime(String raw) {
-    try {
-      if (raw.contains('T') || (raw.contains('-') && raw.length > 8)) {
-        final dt = DateTime.parse(raw).toLocal();
-        int h = dt.hour;
-        final m = dt.minute.toString().padLeft(2, '0');
-        final suffix = h >= 12 ? 'PM' : 'AM';
-        if (h > 12) h -= 12;
-        if (h == 0) h = 12;
-        return '${h.toString().padLeft(2, '0')}:$m $suffix';
-      }
-      final parts = raw.split(':');
-      int h = int.parse(parts[0]);
-      final m = parts[1];
-      final suffix = h >= 12 ? 'PM' : 'AM';
-      if (h > 12) h -= 12;
-      if (h == 0) h = 12;
-      return '${h.toString().padLeft(2, '0')}:$m $suffix';
-    } catch (_) {
-      return raw;
-    }
-  }
+  // static String _formatTime(String raw) {
+  //   try {
+  //     if (raw.contains('T') || (raw.contains('-') && raw.length > 8)) {
+  //       final dt = DateTime.parse(raw).toLocal();
+  //       int h = dt.hour;
+  //       final m = dt.minute.toString().padLeft(2, '0');
+  //       final suffix = h >= 12 ? 'PM' : 'AM';
+  //       if (h > 12) h -= 12;
+  //       if (h == 0) h = 12;
+  //       return '${h.toString().padLeft(2, '0')}:$m $suffix';
+  //     }
+  //     final parts = raw.split(':');
+  //     int h = int.parse(parts[0]);
+  //     final m = parts[1];
+  //     final suffix = h >= 12 ? 'PM' : 'AM';
+  //     if (h > 12) h -= 12;
+  //     if (h == 0) h = 12;
+  //     return '${h.toString().padLeft(2, '0')}:$m $suffix';
+  //   } catch (_) {
+  //     return raw;
+  //   }
+  // }
 
   static String _calcHours(String login, String logout) {
     try {
@@ -390,6 +397,10 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     await openCameraForScan();
     await Future.delayed(const Duration(milliseconds: 800));
     await _markLogin();
+    if (isUserLoggedIn) {
+      print("Already logged in");
+      return;
+    }
   }
 
   Future<void> startCheckOut() async {
@@ -411,6 +422,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         await _closeCamera();
         return;
       }
+      if (position.accuracy > 50) {
+        errorMessage = "Low GPS accuracy. Move to open area.";
+        isScanning = false;
+        await _closeCamera();
+        _safeUpdate();
+        return;
+      }
 
       final photoPath = await _capturePhoto();
       if (photoPath == null) {
@@ -425,14 +443,16 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         'longitude': position.longitude.toString(),
         ...extraFields,
       };
-
+      print("==========LATITUDE==========${position.latitude}");
+      print("=======LONGITUDE ===== ${position.longitude}");
+      print("==========ACCURACY=========${position.accuracy}");
       final dynamic response = await ApiService.postMultipart(
         Apis.attendanceLogin,
         fields: fields,
         filePath: photoPath,
-        fileField: 'photo',
+        fileField: 'image',
       );
-
+      print('user attendance postion of ===$response');
       attendanceResult = response as Map<String, dynamic>;
       markedTime = TimeOfDay.now().format(Get.context!);
       isCheckedIn = true;
@@ -443,6 +463,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       _showSuccess('Punched IN at $markedTime');
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
+      await checkAttendanceStatus();
       await Future.delayed(const Duration(seconds: 3));
       if (isClosed) return;
       isRecognized = false;
@@ -496,7 +517,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         Apis.attendanceLogout,
         fields: fields,
         filePath: photoPath,
-        fileField: 'photo',
+        fileField: 'image',
       );
 
       isCheckedIn = false;
@@ -513,18 +534,29 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isRecognized = false;
       _safeUpdate();
     } on ApiException catch (e) {
+      print("the logot user error is ====$e");
       isScanning = false;
       await _closeCamera();
       errorMessage = e.message;
       _safeUpdate();
       _showError(e.message);
     } catch (e) {
+      print("the logot user error message is ====$e");
       isScanning = false;
       await _closeCamera();
       errorMessage = 'Check-out failed. Try again.';
       _safeUpdate();
       _showError(errorMessage!);
     }
+  }
+
+  Future<void> uploadProfileImage(String path) async {
+    await ApiService.postMultipart(
+      '/api/upload-profile-image',
+      fields: {},
+      filePath: path,
+      fileField: 'profile_image',
+    );
   }
 
   Future<void> _markLoginWithQr(String qrData) async {
@@ -548,6 +580,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     if (id == null) return;
     try {
       final res = await ApiService.get(Apis.attendanceStatus(id));
+      print('user respone of present attendance ====$res');
       if (res is Map) {
         final status = (res['status'] ?? '').toString().toLowerCase();
         switch (status) {
@@ -571,6 +604,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     _safeUpdate();
     try {
       final dynamic response = await ApiService.get(Apis.attendanceToday);
+      print('Today attendance data is =====================$response');
       if (response is Map<String, dynamic>) {
         todayRecord = response['data'] is Map
             ? response['data'] as Map<String, dynamic>
@@ -585,12 +619,14 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> fetchAttendanceHistory() async {
+    final today = DateTime.now();
     final id = employeeId;
     if (id == null) return;
     isLoadingHistory = true;
     _safeUpdate();
     try {
       final dynamic response = await ApiService.get(Apis.attendanceHistory(id));
+      print('History of user attendance === $response');
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
@@ -602,17 +638,60 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
           .toList();
       historyList.sort((a, b) {
         try {
-          return DateTime.parse(b.date).compareTo(DateTime.parse(a.date));
-        } catch (_) {
+          return DateTime.parse(b.loginAt).compareTo(DateTime.parse(a.loginAt));
+        } catch (e) {
+          print("Sorting error: $e");
           return 0;
         }
       });
+      for (var item in historyList) {
+        try {
+          final loginDate = DateTime.parse(item.loginAt).toLocal();
+          if (loginDate.year == today.year &&
+              loginDate.month == today.month &&
+              loginDate.day == today.day) {
+            print("TODAY attendance RECORD FOUND");
+            print("Login: ${formatDateTime(item.loginAt)}");
+            print(
+              "Logout: ${item.logoutAt != null ? formatDateTime(item.logoutAt!) : "Not logged out"}",
+            );
+            print(
+              "===========today attendance recode by date=========$loginDate",
+            );
+          }
+        } catch (e) {
+          print("Error parsing date: $e");
+        }
+      }
     } catch (e) {
       debugPrint('History fetch error: $e');
     } finally {
       isLoadingHistory = false;
       _safeUpdate();
     }
+  }
+
+  bool get isUserLoggedIn {
+    final today = DateTime.now();
+
+    for (var item in historyList) {
+      try {
+        final loginDate = DateTime.parse(item.loginAt).toLocal();
+
+        if (loginDate.year == today.year &&
+            loginDate.month == today.month &&
+            loginDate.day == today.day) {
+          return item.logoutAt == null;
+        }
+      } catch (_) {}
+    }
+
+    return false;
+  }
+
+  String formatDateTime(String dateTime) {
+    final dt = DateTime.parse(dateTime).toLocal();
+    return DateFormat('dd MMM yyyy, hh:mm a').format(dt);
   }
 
   void _safeUpdate() {

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -257,28 +258,7 @@ class AttendancePage extends StatelessWidget {
             ),
             elevation: 0,
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'Processing...',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
+          child: const Text("Processing..."),
         ),
       );
     }
@@ -378,12 +358,17 @@ class AttendancePage extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (_, i) {
               final record = controller.historyList[i];
+
               return _buildHistoryItem(
                 date: record.displayDate,
-                checkIn: record.loginTime ?? 'Absent',
-                checkOut: record.logoutTime ?? '',
+                checkIn: controller.formatDateTime(record.loginAt),
+
+                subtitle: record.logoutAt != null
+                    ? controller.formatDateTime(record.logoutAt!)
+                    : "Still working",
                 hours: record.totalHours ?? '',
                 isPresent: record.isPresent,
+                checkOut: '',
               );
             },
           ),
@@ -395,6 +380,7 @@ class AttendancePage extends StatelessWidget {
     required String date,
     required String checkIn,
     required String checkOut,
+    required String subtitle,
     required String hours,
     required bool isPresent,
   }) {
@@ -501,14 +487,42 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
 
   void _onDetect(BarcodeCapture capture) async {
     if (_scanned) return;
+
     final barcode = capture.barcodes.firstOrNull;
     if (barcode == null || barcode.rawValue == null) return;
-
+    final qrData = barcode.rawValue!;
+    if (!_isValidQr(qrData)) {
+      Get.snackbar("Invalid QR", "This QR is not for attendance");
+      return;
+    }
     _scanned = true;
     await _scannerController.stop();
-
     if (mounted) Navigator.pop(context);
-    await widget.controller.onQrScanned(barcode.rawValue!);
+    await widget.controller.onQrScanned(qrData);
+  }
+
+  bool _isValidQr(String data) {
+    try {
+      final decoded = jsonDecode(data);
+      if (decoded is Map &&
+          decoded['type'] == 'attendance' &&
+          decoded.containsKey('office_id') &&
+          decoded.containsKey('timestamp')) {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final qrTime = decoded['timestamp'];
+        if (now - qrTime > 60000) {
+          return false;
+        }
+        return true;
+      }
+      {
+        return true;
+      }
+    } catch (e) {
+      return false;
+    }
+
+    return false;
   }
 
   @override

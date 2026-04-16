@@ -44,7 +44,10 @@ class AuthController extends GetxController {
 
       if (token != null) {
         await ApiService.saveToken(token);
+        print("TOKEN SAVED === $token");
       }
+      final savedToken = await ApiService.getToken();
+      print("AFTER LOGIN TOKEN === $savedToken");
       // employee
       if (employee != null) {
         await ApiService.saveEmployee(employee);
@@ -65,7 +68,7 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       print('error is $e');
-      _showError("Login failed $e");
+      _showError("Please check your id & password $e");
     }
 
     isLoginLoading = false;

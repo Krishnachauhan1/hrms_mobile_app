@@ -747,6 +747,7 @@ class AttendanceController extends GetxController {
 
   //  Employee History Dialog
   void showEmployeeHistory(String empId, String name, String dept) {
+    print('user attendance data s');
     final history = historyRecords;
 
     Get.dialog(

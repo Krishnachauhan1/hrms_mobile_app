@@ -17,13 +17,17 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _navigate() async {
     await Future.delayed(const Duration(seconds: 2));
-
+    final token = await ApiService.getToken();
+    print("TOKEN === $token");
+    if (token == null || token.isEmpty) {
+      Get.offAllNamed("/login");
+      return;
+    }
     try {
       final user = await ApiService.getEmployee();
-
       if (user != null) {
         if (user["role_id"] == 3) {
-          Get.offAllNamed("/employeeHome");
+          Get.offAllNamed("/home");
         } else {
           Get.offAllNamed("/mainShell");
         }
@@ -31,7 +35,8 @@ class _SplashScreenState extends State<SplashScreen> {
         Get.offAllNamed("/login");
       }
     } catch (e) {
-      Get.offAllNamed("/login");
+      print("API ERROR: $e");
+      Get.offAllNamed("/home");
     }
   }
 

@@ -272,7 +272,11 @@ class DashboardController extends GetxController {
       print('Monthly user attendace data is === $res');
       if (res != null && res['success'] == true) {
         monthlyDays = res['total_days'] ?? 0;
-        monthlyHours = double.tryParse(res['total_hours'].toString()) ?? 0;
+        monthlyHours = double.parse(
+          (double.tryParse(res['total_hours'].toString()) ?? 0).toStringAsFixed(
+            2,
+          ),
+        );
       }
     } catch (e) {
       // print(' fetchMonthlyAttendance  === $e');
