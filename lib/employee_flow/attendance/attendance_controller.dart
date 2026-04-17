@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -199,7 +201,10 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> onQrScanned(String qrData) async {
+    print('QR DATA ======= $qrData');
+
     if (isProcessingQr || qrData.isEmpty) return;
+
     isProcessingQr = true;
     lastScannedQrData = qrData;
     _safeUpdate();
@@ -207,12 +212,21 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     isQrScannerOpen = false;
     _safeUpdate();
 
-    await Future.delayed(const Duration(milliseconds: 400));
+    // await Future.delayed(const Duration(milliseconds: 400));
+
+    // try {
+    final decoded = jsonDecode(qrData);
+    final qrToken = decoded["qr_token"];
+    print('the qr token is ====$qrToken');
     if (isCheckedIn) {
-      await _markLogoutWithQr(qrData);
+      await _markLogoutWithQr(qrToken);
     } else {
-      await _markLoginWithQr(qrData);
+      await _markLoginWithQr(qrToken);
     }
+    // } catch (e) {
+    // print('ERROR IS =======$e');
+    // _showError("Invalid QR format");
+    // }
 
     isProcessingQr = false;
     _safeUpdate();
@@ -560,19 +574,60 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _markLoginWithQr(String qrData) async {
-    errorMessage = null;
+    // try {
+    print('the qr data is ====$qrData');
+    isProcessingQr = true;
     _safeUpdate();
-    await openCameraForScan();
-    await Future.delayed(const Duration(milliseconds: 800));
-    await _markLogin(extraFields: {'qr_code': qrData});
+    final position = await _getLocation();
+    if (position == null) return;
+    final response = await ApiService.post(
+      Apis.employeeloginbyQR,
+      body: {
+        "qr_token": qrData,
+        "latitude": position.latitude.toString(),
+        "longitude": position.longitude.toString(),
+        "employee_id": 5,
+      },
+      isAuth: true,
+    );
+    print("QR LOGIN RESPONSE ======= $response");
+
+    isCheckedIn = true;
+    markedTime = TimeOfDay.now().format(Get.context!);
+    _showSuccess("QR Check-In Successful");
+    await fetchTodayAttendance();
+    await fetchAttendanceHistory();
+    // } catch (e) {
+    _showError("QR Login Failed");
+    // } finally {
+    isProcessingQr = false;
+    _safeUpdate();
+    // }
   }
 
   Future<void> _markLogoutWithQr(String qrData) async {
-    errorMessage = null;
-    _safeUpdate();
-    await openCameraForScan();
-    await Future.delayed(const Duration(milliseconds: 800));
-    await _markLogout(extraFields: {'qr_code': qrData});
+    // int employee_id = ;
+    try {
+      isProcessingQr = true;
+      _safeUpdate();
+
+      final response = await ApiService.post(
+        Apis.employeelogoutbyQR,
+        body: {"qr_token": qrData, "employee_id": 5},
+        isAuth: true,
+      );
+      print("QR LOGOUT RESPONSE ======== $response");
+      isCheckedIn = false;
+      markedTime = TimeOfDay.now().format(Get.context!);
+      _showSuccess("QR Check-Out Successful");
+      await fetchTodayAttendance();
+      await fetchAttendanceHistory();
+    } catch (e) {
+      _showError("QR Logout Failed");
+    } finally {
+      isProcessingQr = false;
+      _safeUpdate();
+    }
   }
 
   Future<void> checkAttendanceStatus() async {

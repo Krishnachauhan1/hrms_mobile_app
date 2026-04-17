@@ -211,15 +211,19 @@ class ApiService {
   }
 
   static Future<dynamic> post(
-    String endpoint,
-    Map<String, dynamic> body,
-  ) async {
+    String endpoint, {
+    required Map<String, dynamic> body,
+    bool isAuth = false,
+  }) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
-    final headers = await _buildHeaders();
+
+    final headers = await _buildHeaders(withAuth: isAuth);
+
     try {
       final response = await http
           .post(url, headers: headers, body: jsonEncode(body))
           .timeout(_requestTimeout);
+
       return _handleResponse(response);
     } on TimeoutException {
       throw ApiException(
@@ -320,6 +324,8 @@ class ApiService {
 
   //  error handler
   static Map<String, dynamic> _handleResponse(http.Response response) {
+    print('respone of the body data==${response.body}');
+    print('respone of the body==${response.statusCode}');
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return decoded;
