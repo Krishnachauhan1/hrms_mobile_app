@@ -270,7 +270,7 @@ class LeaveController extends GetxController {
     try {
       final dynamic response = await ApiService.post(
         Apis.leaveApplications,
-        body,
+        body: body,
       );
       // Reset form
       reasonController.clear();

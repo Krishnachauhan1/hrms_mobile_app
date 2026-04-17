@@ -31,4 +31,6 @@ class Apis {
   // static const allEmployee = "/employees";
   static String employeesByOrganizations(dynamic organizationsId) =>
       '/organization/$organizationsId/employees';
+  static String employeeloginbyQR = '/attendance/qr-login';
+  static String employeelogoutbyQR = '/attendance/qr-logout';
 }
