@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'apis.dart';
+import 'package:get/get.dart';
 
 class ApiService {
   //  SharedPrefs keys
@@ -347,6 +349,7 @@ class ApiService {
         message: message ?? 'Validation error',
       );
     }
+    Get.snackbar('Error ', 'Please try again',backgroundColor: Colors.red,colorText: Colors.white);
     throw ApiException(
       statusCode: response.statusCode,
       message: decoded['message'] ?? 'Something went wrong',
