@@ -201,9 +201,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> onQrScanned(String qrData) async {
+    if (qrData.isEmpty) return;
     print('QR DATA ======= $qrData');
-
-    if (isProcessingQr || qrData.isEmpty) return;
+    print('QR DATA ======= $isProcessingQr');
 
     isProcessingQr = true;
     lastScannedQrData = qrData;
@@ -218,9 +218,12 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     final decoded = jsonDecode(qrData);
     final qrToken = decoded["qr_token"];
     print('the qr token is ====$qrToken');
+    print('the qr token is ====$isCheckedIn');
     if (isCheckedIn) {
+      print('calling logout ');
       await _markLogoutWithQr(qrToken);
     } else {
+      print('calling login ');
       await _markLoginWithQr(qrToken);
     }
     // } catch (e) {
@@ -583,31 +586,39 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       _showError("Employee ID not found");
       return;
     }
+
     final position = await _getLocation();
     if (position == null) return;
+
     final response = await ApiService.post(
       Apis.employeeloginbyQR,
       body: {
         "qr_token": qrData,
         "latitude": position.latitude.toString(),
         "longitude": position.longitude.toString(),
+
         "employee_id": employeeId,
       },
       isAuth: true,
     );
     print("QR LOGIN RESPONSE ======= $response");
+    try {
+      print('the qr data is ====$qrData');
 
-    isCheckedIn = true;
-    markedTime = TimeOfDay.now().format(Get.context!);
-    _showSuccess("QR Check-In Successful");
-    await fetchTodayAttendance();
-    await fetchAttendanceHistory();
-    // } catch (e) {
-    _showError("QR Login Failed");
-    // } finally {
-    isProcessingQr = false;
-    _safeUpdate();
-    // }
+      isProcessingQr = true;
+      _safeUpdate();
+
+      isCheckedIn = true;
+      markedTime = TimeOfDay.now().format(Get.context!);
+      _showSuccess("QR Check-In Successful");
+      await fetchTodayAttendance();
+      await fetchAttendanceHistory();
+    } catch (e) {
+      _showError("QR Login Failed");
+    } finally {
+      isProcessingQr = false;
+      _safeUpdate();
+    }
   }
 
   Future<void> _markLogoutWithQr(String qrData) async {
@@ -638,6 +649,25 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isProcessingQr = false;
       _safeUpdate();
     }
+  }
+
+  bool checkTodayLoggedIn(List<AttendanceRecord> list) {
+    final today = DateTime.now();
+
+    for (var item in list) {
+      final login = DateTime.parse(item.loginAt).toLocal();
+
+      if (login.year == today.year &&
+          login.month == today.month &&
+          login.day == today.day) {
+        // Agar logout null hai → still logged in
+        if (item.logoutAt == null) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   Future<void> checkAttendanceStatus() async {
@@ -717,6 +747,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
               loginDate.day == today.day) {
             print("TODAY attendance RECORD FOUND");
             print("Login: ${formatDateTime(item.loginAt)}");
+            print("Login: ${loginDate}");
             print(
               "Logout: ${item.logoutAt != null ? formatDateTime(item.logoutAt!) : "Not logged out"}",
             );

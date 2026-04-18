@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -51,7 +50,7 @@ class AttendancePage extends StatelessWidget {
               ),
             ],
           ),
-          body: SingleChildScrollView(
+          body: controller.isProcessingQr?Center(child: CircularProgressIndicator(),):SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
@@ -498,6 +497,7 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
     _scanned = true;
     await _scannerController.stop();
     if (mounted) Navigator.pop(context);
+
     await widget.controller.onQrScanned(qrData);
   }
 
