@@ -688,6 +688,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
             isCheckedIn = false;
         }
       }
+
       _safeUpdate();
     } catch (e) {
       debugPrint('Status check error: $e');
