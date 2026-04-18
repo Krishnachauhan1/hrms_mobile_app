@@ -578,6 +578,11 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     print('the qr data is ====$qrData');
     isProcessingQr = true;
     _safeUpdate();
+    final employeeId = await ApiService.getEmployeeId();
+    if (employeeId == null) {
+      _showError("Employee ID not found");
+      return;
+    }
     final position = await _getLocation();
     if (position == null) return;
     final response = await ApiService.post(
@@ -586,7 +591,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         "qr_token": qrData,
         "latitude": position.latitude.toString(),
         "longitude": position.longitude.toString(),
-        "employee_id": 5,
+        "employee_id": employeeId,
       },
       isAuth: true,
     );
@@ -610,10 +615,15 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     try {
       isProcessingQr = true;
       _safeUpdate();
+      final employeeId = await ApiService.getEmployeeId();
 
+      if (employeeId == null) {
+        _showError("Employee ID not found");
+        return;
+      }
       final response = await ApiService.post(
         Apis.employeelogoutbyQR,
-        body: {"qr_token": qrData, "employee_id": 5},
+        body: {"qr_token": qrData, "employee_id": employeeId},
         isAuth: true,
       );
       print("QR LOGOUT RESPONSE ======== $response");
