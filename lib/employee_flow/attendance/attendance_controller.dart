@@ -201,9 +201,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> onQrScanned(String qrData) async {
-
-
-    if ( qrData.isEmpty) return;
+    if (qrData.isEmpty) return;
+    print('QR DATA ======= $qrData');
+    print('QR DATA ======= $isProcessingQr');
 
     isProcessingQr = true;
     lastScannedQrData = qrData;
@@ -407,7 +407,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> startCheckIn() async {
     if (isScanning) return;
-
     errorMessage = null;
     _safeUpdate();
     await openCameraForScan();
@@ -430,7 +429,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _markLogin({Map<String, String> extraFields = const {}}) async {
     isScanning = true;
-    isProcessingQr = true;
     _safeUpdate();
     try {
       final position = await _getLocation();
@@ -580,7 +578,16 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _markLoginWithQr(String qrData) async {
-    final empid = await ApiService.getEmployeeId();
+    // try {
+    print('the qr data is ====$qrData');
+    isProcessingQr = true;
+    _safeUpdate();
+    final employeeId = await ApiService.getEmployeeId();
+    if (employeeId == null) {
+      _showError("Employee ID not found");
+      return;
+    }
+
     final position = await _getLocation();
     if (position == null) return;
 
@@ -590,27 +597,33 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         "qr_token": qrData,
         "latitude": position.latitude.toString(),
         "longitude": position.longitude.toString(),
-        "employee_id": empid,
+
+        "employee_id": employeeId,
       },
       isAuth: true,
     );
     print("QR LOGIN RESPONSE ======= $response");
     try {
-    print('the qr data is ====$qrData');
+      print('the qr data is ====$qrData');
 
-    isProcessingQr = true;
-    _safeUpdate();
+      isProcessingQr = true;
+      _safeUpdate();
 
     isCheckedIn = true;
     markedTime = TimeOfDay.now().format(Get.context!);
     _showSuccess("QR Check-In Successful");
     await fetchTodayAttendance();
     await fetchAttendanceHistory();
+      isCheckedIn = true;
+      markedTime = TimeOfDay.now().format(Get.context!);
+      _showSuccess("QR Check-In Successful");
+      await fetchTodayAttendance();
+      await fetchAttendanceHistory();
     } catch (e) {
-    _showError("QR Login Failed");
+      _showError("QR Login Failed");
     } finally {
-    isProcessingQr = false;
-    _safeUpdate();
+      isProcessingQr = false;
+      _safeUpdate();
     }
   }
 
@@ -619,7 +632,12 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     try {
       isProcessingQr = true;
       _safeUpdate();
+      final employeeId = await ApiService.getEmployeeId();
 
+      if (employeeId == null) {
+        _showError("Employee ID not found");
+        return;
+      }
       final response = await ApiService.post(
         Apis.employeelogoutbyQR,
         body: {"qr_token": qrData, "employee_id": employeeId},
@@ -648,7 +666,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       if (login.year == today.year &&
           login.month == today.month &&
           login.day == today.day) {
-
         // Agar logout null hai → still logged in
         if (item.logoutAt == null) {
           return true;
@@ -734,6 +751,15 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
               loginDate.month == today.month &&
               loginDate.day == today.day) {
 
+            print("TODAY attendance RECORD FOUND");
+            print("Login: ${formatDateTime(item.loginAt)}");
+            print("Login: ${loginDate}");
+            print(
+              "Logout: ${item.logoutAt != null ? formatDateTime(item.logoutAt!) : "Not logged out"}",
+            );
+            print(
+              "===========today attendance recode by date=========$loginDate",
+            );
           }
         } catch (e) {
           print("Error parsing date: $e");
