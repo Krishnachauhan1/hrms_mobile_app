@@ -162,6 +162,7 @@ class ApiService {
     bool withAuth = true,
   }) async {
     final token = withAuth ? await getToken() : null;
+    print('token is $token');
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -209,13 +210,25 @@ class ApiService {
   }
 
   static Future<dynamic> post(
-    String endpoint, {
-    required Map<String, dynamic> body,
-    bool isAuth = false,
-  }) async {
+      String endpoint, {
+        required Map<String, dynamic> body,
+        bool isAuth = true,
+      }) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
-
     final headers = await _buildHeaders(withAuth: isAuth);
+
+    // Build curl command
+    final curl = StringBuffer();
+    curl.write("curl -X POST '${url.toString()}' ");
+
+    headers.forEach((key, value) {
+      curl.write("-H '$key: $value' ");
+    });
+
+    curl.write("-d '${jsonEncode(body)}'");
+
+    // Print curl
+    print("CURL REQUEST:\n$curl\n");
 
     try {
       final response = await http
@@ -230,7 +243,6 @@ class ApiService {
       );
     }
   }
-
   static Future<dynamic> put(String endpoint, Map<String, dynamic> body) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders();

@@ -271,6 +271,7 @@ class LeaveController extends GetxController {
       final dynamic response = await ApiService.post(
         Apis.leaveApplications,
         body: body,
+        isAuth: true
       );
       // Reset form
       reasonController.clear();

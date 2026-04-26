@@ -212,13 +212,11 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     isQrScannerOpen = false;
     _safeUpdate();
 
-    // await Future.delayed(const Duration(milliseconds: 400));
 
-    // try {
+    try {
     final decoded = jsonDecode(qrData);
     final qrToken = decoded["qr_token"];
-    print('the qr token is ====$qrToken');
-    print('the qr token is ====$isCheckedIn');
+
     if (isCheckedIn) {
       print('calling logout ');
       await _markLogoutWithQr(qrToken);
@@ -226,10 +224,10 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       print('calling login ');
       await _markLoginWithQr(qrToken);
     }
-    // } catch (e) {
-    // print('ERROR IS =======$e');
-    // _showError("Invalid QR format");
-    // }
+    } catch (e) {
+    print('ERROR IS =======$e');
+    _showError("Invalid QR format");
+    }
 
     isProcessingQr = false;
     _safeUpdate();
@@ -617,14 +615,14 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _markLogoutWithQr(String qrData) async {
-    // int employee_id = ;
+
     try {
       isProcessingQr = true;
       _safeUpdate();
 
       final response = await ApiService.post(
         Apis.employeelogoutbyQR,
-        body: {"qr_token": qrData, "employee_id": 5},
+        body: {"qr_token": qrData, "employee_id": employeeId},
         isAuth: true,
       );
       print("QR LOGOUT RESPONSE ======== $response");
