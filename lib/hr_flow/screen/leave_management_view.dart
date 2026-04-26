@@ -6,13 +6,13 @@ import 'package:intl/intl.dart';
 import 'dart:math';
 
 class LeaveManagementView extends GetView<LeaveManagementController> {
-  const LeaveManagementView({Key? key}) : super(key: key);
+  const LeaveManagementView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F6),
-      appBar: _buildAppBar(),
+      // appBar: _buildAppBar(),
       body: Column(
         children: [
           _StatsRow(controller: controller),
@@ -41,6 +41,7 @@ class LeaveManagementView extends GetView<LeaveManagementController> {
         preferredSize: const Size.fromHeight(0.5),
         child: Container(height: 0.5, color: Colors.black.withOpacity(0.08)),
       ),
+      leading: SizedBox(),
       title: GetBuilder<LeaveManagementController>(
         builder: (controller) => controller.isSelectMode
             ? Text(

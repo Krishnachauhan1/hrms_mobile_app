@@ -2,6 +2,7 @@ import 'package:employee_app/employee_flow/attendance/attendance_screen.dart';
 import 'package:employee_app/employee_flow/leaves/leavescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../profile/profile_screen.dart';
 import 'dashboard_controller.dart';
 
 class DashboardPage extends StatelessWidget {
@@ -14,31 +15,34 @@ class DashboardPage extends StatelessWidget {
       builder: (controller) {
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FE),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(controller, context),
-                  const SizedBox(height: 30),
-                  _buildAttendanceCard(controller),
-                  const SizedBox(height: 20),
-                  _buildQuickActions(context),
-                  const SizedBox(height: 25),
-                  const Text(
-                    'Overview',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2D3436),
+          body: RefreshIndicator(
+            onRefresh: () async { await controller.loadDashboardData(); },
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(controller, context),
+                    const SizedBox(height: 30),
+                    _buildAttendanceCard(controller),
+                    const SizedBox(height: 20),
+                    _buildQuickActions(context),
+                    const SizedBox(height: 25),
+                    const Text(
+                      'Overview',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D3436),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 15),
-                  _buildStatsGrid(controller),
-                  const SizedBox(height: 25),
-                  _buildUpcomingLeaves(controller),
-                ],
+                    const SizedBox(height: 15),
+                    _buildStatsGrid(controller),
+                    const SizedBox(height: 25),
+                    _buildUpcomingLeaves(controller),
+                  ],
+                ),
               ),
             ),
           ),
@@ -84,7 +88,7 @@ class DashboardPage extends StatelessWidget {
 
         // Profile Avatar
         GestureDetector(
-          onTap: () => _showProfileBottomSheet(context, controller),
+          onTap: () => ProfileBottomSheet.show(context, controller),
           child: Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
@@ -128,145 +132,6 @@ class DashboardPage extends StatelessWidget {
   }
 
   // PROFILE BOTTOM SHEET
-  void _showProfileBottomSheet(
-    BuildContext context,
-    DashboardController controller,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ── Handle bar ──
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // ── Avatar
-              CircleAvatar(
-                radius: 36,
-                backgroundColor: const Color(0xFF6C5CE7),
-                child: Text(
-                  controller.employeeInitials.isEmpty
-                      ? '--'
-                      : controller.employeeInitials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // ── Employee Name ──
-              Text(
-                controller.employeeName.isEmpty
-                    ? 'Employee'
-                    : controller.employeeName,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3436),
-                ),
-              ),
-              const SizedBox(height: 4),
-
-              // ── Subtitle ──
-              const Text(
-                'Employee Account',
-                style: TextStyle(fontSize: 13, color: Color(0xFF74788D)),
-              ),
-              const SizedBox(height: 28),
-
-              const Divider(height: 1),
-              const SizedBox(height: 16),
-
-              // ── Logout Button ──
-              GetBuilder<DashboardController>(
-                builder: (ctrl) {
-                  return SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: ctrl.isLoggingOut
-                          ? null
-                          : () {
-                              Navigator.pop(context);
-                              ctrl.logout();
-                            },
-                      icon: ctrl.isLoggingOut
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Icon(Icons.logout_rounded),
-                      label: Text(
-                        ctrl.isLoggingOut ? 'Logging out...' : 'Logout',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF7675),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Cancel Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF74788D),
-                    side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   // ATTENDANCE CARD
   Widget _buildAttendanceCard(DashboardController controller) {
@@ -444,12 +309,7 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionButton({required IconData icon, required String label, required Color color, required VoidCallback onTap,}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -557,12 +417,7 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    String subtitle,
-    Color color,
-  ) {
+  Widget _buildStatCard(String title, String value, String subtitle, Color color,) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -656,12 +511,7 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildLeaveItem({
-    required String type,
-    required String date,
-    required String duration,
-    required Color color,
-  }) {
+  Widget _buildLeaveItem({required String type, required String date, required String duration, required Color color,}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

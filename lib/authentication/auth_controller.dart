@@ -38,8 +38,8 @@ class AuthController extends GetxController {
     try {
       final data = await ApiService.login(email: email, password: password);
       print(data);
-      final token = data["token"];
-      final employee = data["employee"] ?? data["user"] ?? data["data"];
+      final token = data?["token"];
+      final employee = data?["employee"] ?? data?["user"] ?? data?["data"];
       //token
 
       if (token != null) {

@@ -170,15 +170,13 @@ class ApiService {
   }
 
   // Auth calls
-  static Future<Map<String, dynamic>> login({
+  static Future<Map<String, dynamic>?> login({
     required String email,
     required String password,
   }) async {
     final url = Uri.parse('${Apis.baseUrl}${Apis.login}');
-    print(url);
     final headers = await _buildHeaders(withAuth: false);
     final body = jsonEncode({'email': email, 'password': password});
-    print('the user login is ==$body');
     try {
       final response = await http
           .post(url, headers: headers, body: body)
@@ -195,14 +193,12 @@ class ApiService {
   static Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders();
-    print(headers);
 
     try {
       final response = await http
           .get(url, headers: headers)
           .timeout(_requestTimeout);
-      print('print body===${response.body}');
-      print('print body request===${response.request}');
+
       return _handleResponse(response);
     } on TimeoutException {
       throw ApiException(
@@ -298,8 +294,8 @@ class ApiService {
   }) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final token = await getToken();
-    if (filePath != null) print('File.......... $filePath');
-    try {
+    if (filePath != null) {
+      try {
       final request = http.MultipartRequest('POST', url)
         ..headers['Accept'] = 'application/json'
         ..fields.addAll(fields);
@@ -322,12 +318,13 @@ class ApiService {
     } catch (e) {
       rethrow;
     }
+    }
   }
 
   //  error handler
-  static Map<String, dynamic> _handleResponse(http.Response response) {
-    print('respone of the body data==${response.body}');
-    print('respone of the body==${response.statusCode}');
+  static Map<String, dynamic>? _handleResponse(http.Response response) {
+
+    final res= jsonDecode(response.body);
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return decoded;
@@ -349,7 +346,8 @@ class ApiService {
         message: message ?? 'Validation error',
       );
     }
-    Get.snackbar('Error ', 'Please try again',backgroundColor: Colors.red,colorText: Colors.white);
+    Get.snackbar('Error ', res['message'],backgroundColor: Colors.red,colorText: Colors.white);
+    return null;
     throw ApiException(
       statusCode: response.statusCode,
       message: decoded['message'] ?? 'Something went wrong',

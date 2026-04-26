@@ -18,21 +18,16 @@ class AttendancePage extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF2D3436)),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Padding(
-              padding: const EdgeInsets.only(right: 100),
-              child: const Text(
-                "Mark Attendance",
-                style: TextStyle(
-                  color: Color(0xFF2D3436),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
+            leading: SizedBox(),
+            title: const Text(
+              "Mark Attendance",
+              style: TextStyle(
+                color: Color(0xFF2D3436),
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
               ),
             ),
+
             centerTitle: true,
             actions: [
               Padding(

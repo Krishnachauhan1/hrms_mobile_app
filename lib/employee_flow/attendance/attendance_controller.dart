@@ -204,8 +204,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
 
     if ( qrData.isEmpty) return;
-    print('QR DATA ======= $qrData');
-    print('QR DATA ======= $isProcessingQr');
 
     isProcessingQr = true;
     lastScannedQrData = qrData;
@@ -411,6 +409,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> startCheckIn() async {
     if (isScanning) return;
+
     errorMessage = null;
     _safeUpdate();
     await openCameraForScan();
@@ -433,6 +432,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _markLogin({Map<String, String> extraFields = const {}}) async {
     isScanning = true;
+    isProcessingQr = true;
     _safeUpdate();
     try {
       final position = await _getLocation();
@@ -441,13 +441,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         await _closeCamera();
         return;
       }
-      if (position.accuracy > 50) {
-        errorMessage = "Low GPS accuracy. Move to open area.";
-        isScanning = false;
-        await _closeCamera();
-        _safeUpdate();
-        return;
-      }
+      // if (position.accuracy > 50) {
+      //   errorMessage = "Low GPS accuracy. Move to open area.";
+      //   isScanning = false;
+      //   await _closeCamera();
+      //   _safeUpdate();
+      //   return;
+      // }
 
       final photoPath = await _capturePhoto();
       if (photoPath == null) {
@@ -505,6 +505,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       errorMessage = 'Check-in failed. Try again.';
       _safeUpdate();
       _showError(errorMessage!);
+    }finally{
+      isProcessingQr = false;
+
     }
   }
 
@@ -600,8 +603,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     isProcessingQr = true;
     _safeUpdate();
 
-
-
     isCheckedIn = true;
     markedTime = TimeOfDay.now().format(Get.context!);
     _showSuccess("QR Check-In Successful");
@@ -689,7 +690,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     _safeUpdate();
     try {
       final dynamic response = await ApiService.get(Apis.attendanceToday);
-      print('Today attendance data is =====================$response');
       if (response is Map<String, dynamic>) {
         todayRecord = response['data'] is Map
             ? response['data'] as Map<String, dynamic>
@@ -735,11 +735,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
           if (loginDate.year == today.year &&
               loginDate.month == today.month &&
               loginDate.day == today.day) {
-            print("TODAY attendance RECORD FOUND");
-            print("Login: ${formatDateTime(item.loginAt)}");
-            print("Login: ${loginDate}");
-            print("Logout: ${item.logoutAt != null ? formatDateTime(item.logoutAt!) : "Not logged out"}",);
-            print("===========today attendance recode by date=========$loginDate",);
+
           }
         } catch (e) {
           print("Error parsing date: $e");
