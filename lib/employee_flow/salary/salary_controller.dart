@@ -162,7 +162,7 @@
       try {
         // Step 1: API call — GET, no body needed
         final dynamic response = await ApiService.get(Apis.employeeSalary(id));
-        print('salary data is $response');
+        // print('salary data is $response');
         // Step 2: Parse — handle both flat and nested response
         Map<String, dynamic> data = {};
         if (response is Map<String, dynamic>) {
@@ -170,10 +170,8 @@
               ? response['data'] as Map<String, dynamic>
               : response;
         }
-
         // Step 3: Map to model
         salaryDetail = SalaryDetail.fromJson(data);
-
         // Step 4: Log parsed values
         isLoading = false;
         _safeUpdate();

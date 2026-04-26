@@ -15,10 +15,7 @@ class LeavePage extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF2D3436)),
-              onPressed: () => Navigator.pop(context),
-            ),
+            leading: SizedBox(),
             title: const Text(
               'Leave Management',
               style: TextStyle(
@@ -26,6 +23,7 @@ class LeavePage extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            centerTitle: true,
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),

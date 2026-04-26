@@ -34,10 +34,7 @@ class SalaryPage extends StatelessWidget {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF2D3436)),
-              onPressed: () => Navigator.pop(context),
-            ),
+            leading: SizedBox(),
             title: const Text(
               'Salary Details',
               style: TextStyle(
@@ -45,6 +42,7 @@ class SalaryPage extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            centerTitle: true,
           ),
           body: RefreshIndicator(
             onRefresh: controller.fetchSalary,

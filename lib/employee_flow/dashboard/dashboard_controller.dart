@@ -1,11 +1,15 @@
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/apis.dart';
 import 'package:employee_app/authentication/auth_controller.dart';
+import 'package:http/http.dart' as http;
 
 class DashboardController extends GetxController {
   String employeeName = '';
+  bool uploadImage=true;
   String employeeInitials = '';
   String employeeRole = '';
   bool isLoadingProfile = false;
@@ -37,7 +41,7 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadDashboardData();
+    loadDashboardData();
   }
 
   Future<void> refreshDashboard() async {
@@ -48,19 +52,22 @@ class DashboardController extends GetxController {
     ]);
   }
 
-  Future<void> _loadDashboardData() async {
+  Future<void> loadDashboardData() async {
     employeeId = await ApiService.getEmployeeId();
 
-    if (employeeId == null) {
+    if (employeeId != null) {
+
       final authController = Get.find<AuthController>();
       employeeName = authController.employee?['name']?.toString() ?? 'Employee';
+      // print('emplyee data ${authController.employee?['face_embedding']}');
+      uploadImage=authController.employee?['face_embedding']==null?true:false;
       employeeInitials = _generateInitials(employeeName);
       employeeRole =
           authController.employee?['role']?.toString() ??
           authController.employee?['designation']?.toString() ??
           'Employee';
       _safeUpdate();
-      return;
+
     }
 
     await Future.wait([
@@ -82,7 +89,7 @@ class DashboardController extends GetxController {
 
     try {
       final dynamic res = await ApiService.get(Apis.attendanceStatus(id));
-      print('attendanceStatus response is ====== $res');
+      // print('attendanceStatus response is ====== $res');
 
       if (res is Map<String, dynamic>) {
         final auth = Get.find<AuthController>().employee;
@@ -113,7 +120,6 @@ class DashboardController extends GetxController {
     _safeUpdate();
     try {
       final dynamic res = await ApiService.get(Apis.attendanceHistory(id));
-      print('History response is  $res');
 
       List<dynamic> rawList = [];
       if (res is Map && res['data'] is List) {
@@ -125,9 +131,9 @@ class DashboardController extends GetxController {
       final todayStr = DateTime.now().toUtc().toString().substring(0, 10);
       final todayLocal = DateTime.now().toString().substring(0, 10);
 
-      print(
-        'Looking for date====== $todayStr or $todayLocal, employeeId........ $id',
-      );
+      // print(
+      //   'Looking for date====== $todayStr or $todayLocal, employeeId........ $id',
+      // );
       Map<String, dynamic>? todayRecord;
       for (final item in rawList) {
         final map = item as Map<String, dynamic>;
@@ -140,7 +146,7 @@ class DashboardController extends GetxController {
         final loginAt = map['login_at']?.toString() ?? '';
         if (loginAt.startsWith(todayStr) || loginAt.startsWith(todayLocal)) {
           todayRecord = map;
-          print('Today record found====== $todayRecord');
+          // print('Today record found====== $todayRecord');
           break;
         }
       }
@@ -225,7 +231,7 @@ class DashboardController extends GetxController {
     _safeUpdate();
     try {
       final dynamic res = await ApiService.get(Apis.attendanceHistory(id));
-      print('fetching the attendance stats response is == $res');
+      // print('fetching the attendance stats response is == $res');
       List<dynamic> rawList = [];
       if (res is Map && res['data'] is List) {
         rawList = res['data'] as List<dynamic>;
@@ -293,7 +299,7 @@ class DashboardController extends GetxController {
 
     try {
       final res = await ApiService.get(Apis.attendanceTotal);
-      print('Total user working days response $res');
+      // print('Total user working days ??/response $res');
       if (res != null && res['success'] == true) {
         totalDays = res['total_attendance_days'] ?? 0;
         totalHours = double.tryParse(res['total_work_hours'].toString()) ?? 0;
@@ -475,6 +481,52 @@ class DashboardController extends GetxController {
       default:
         return 'Not Marked';
     }
+  }
+
+  Future<void> uploadProfileImage(File imageFile) async {
+    final token= await ApiService.getToken();
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('https://quicksalary.org/api/upload-profile-image'),
+    );
+
+    // ✅ Add token here
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+    });
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'profile_image',
+        imageFile.path,
+      ),
+    );
+
+    var response = await request.send();
+
+    // Better debug output
+    final responseBody = await response.stream.bytesToString();
+
+    print('Status: ${response.statusCode}');
+    print('Response: $responseBody');
+
+    if (response.statusCode == 200) {
+      print("Upload success");
+    } else {
+      print("Upload failed");
+    }
+  }
+  Future<File?> pickImageFromCamera() async {
+    final picker = ImagePicker();
+
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.camera, // ❗ no gallery
+      imageQuality: 80,
+    );
+
+    if (image == null) return null;
+    return File(image.path);
   }
 
   Color get todayStatusColor {
