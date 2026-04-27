@@ -113,7 +113,7 @@ class AttendanceController extends GetxController {
   Future<void> loadEmployeeStatus(int employeeId) async {
     try {
       final res = await ApiService.get(Apis.attendanceStatus(employeeId));
-      print("employe employee status data is =====$res");
+      // print("employe employee status data is =====$res");
       currentEmployeeId = res["employee_id"] ?? 0;
       currentEmployeeName = res["employee_name"] ?? "";
       currentStatus = _mapStatus(res["status"]);
@@ -126,7 +126,7 @@ class AttendanceController extends GetxController {
   Future<void> fetchHistory(int employeeId) async {
     try {
       final res = await ApiService.get(Apis.attendanceHistory(employeeId));
-      print("history res ========== $res");
+      // print("history res ========== $res");
       historyRecords.clear();
       List list = res["data"];
       for (var e in list) {
