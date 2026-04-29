@@ -284,11 +284,10 @@ class LeavePage extends StatelessWidget {
                               color: Color(0xFF6C5CE7),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              '${controller.startDate.day}/${controller.startDate.month}/${controller.startDate.year}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF2D3436),
+                            Expanded(
+                              child: Text(
+                                '${controller.startDate.day}/${controller.startDate.month}/${controller.startDate.year}',
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -328,11 +327,10 @@ class LeavePage extends StatelessWidget {
                               color: Color(0xFF6C5CE7),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              '${controller.endDate.day}/${controller.endDate.month}/${controller.endDate.year}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF2D3436),
+                            Expanded(
+                              child: Text(
+                                '${controller.startDate.day}/${controller.startDate.month}/${controller.startDate.year}',
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 
 class DashboardController extends GetxController {
   String employeeName = '';
-  bool uploadImage=true;
+  bool uploadImage = true;
   String employeeInitials = '';
   String employeeRole = '';
   bool isLoadingProfile = false;
@@ -56,18 +56,18 @@ class DashboardController extends GetxController {
     employeeId = await ApiService.getEmployeeId();
 
     if (employeeId != null) {
-
       final authController = Get.find<AuthController>();
       employeeName = authController.employee?['name']?.toString() ?? 'Employee';
       // print('emplyee data ${authController.employee?['face_embedding']}');
-      uploadImage=authController.employee?['face_embedding']==null?true:false;
+      uploadImage = authController.employee?['face_embedding'] == null
+          ? true
+          : false;
       employeeInitials = _generateInitials(employeeName);
       employeeRole =
           authController.employee?['role']?.toString() ??
           authController.employee?['designation']?.toString() ??
           'Employee';
       _safeUpdate();
-
     }
 
     await Future.wait([
@@ -129,7 +129,7 @@ class DashboardController extends GetxController {
       }
 
       final todayStr = DateTime.now().toUtc().toString().substring(0, 10);
-      final todayLocal = DateTime.now().toString().substring(0, 10);
+      final todayLocal = DateTime.now().toLocal().toString().substring(0, 10);
 
       // print(
       //   'Looking for date====== $todayStr or $todayLocal, employeeId........ $id',
@@ -142,7 +142,7 @@ class DashboardController extends GetxController {
             ? empObj['id']?.toString()
             : map['employee_id']?.toString();
 
-        if (empId != id.toString()) continue;
+        if (empId != null && empId != id.toString()) continue;
         final loginAt = map['login_at']?.toString() ?? '';
         if (loginAt.startsWith(todayStr) || loginAt.startsWith(todayLocal)) {
           todayRecord = map;
@@ -484,39 +484,56 @@ class DashboardController extends GetxController {
   }
 
   Future<void> uploadProfileImage(File imageFile) async {
-    final token= await ApiService.getToken();
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('https://quicksalary.org/api/upload-profile-image'),
-    );
+    try {
+      final token = await ApiService.getToken();
 
-    // ✅ Add token here
-    request.headers.addAll({
-      'Authorization': 'Bearer $token',
-      'Accept': 'application/json',
-    });
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://quicksalary.org/api/upload-profile-image'),
+      );
 
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'profile_image',
-        imageFile.path,
-      ),
-    );
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      });
 
-    var response = await request.send();
+      request.files.add(
+        await http.MultipartFile.fromPath('profile_image', imageFile.path),
+      );
 
-    // Better debug output
-    final responseBody = await response.stream.bytesToString();
+      var response = await request.send();
+      final responseBody = await response.stream.bytesToString();
 
-    print('Status: ${response.statusCode}');
-    print('Response: $responseBody');
-
-    if (response.statusCode == 200) {
-      print("Upload success");
-    } else {
-      print("Upload failed");
+      print('Status: ${response.statusCode}');
+      print('Response: $responseBody');
+      if (response.statusCode == 200) {
+        Get.snackbar(
+          "Success",
+          "Image uploaded successfully",
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      } else {
+        Get.snackbar(
+          "Error",
+          "Unable to upload image. Please try again.",
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        "Something went wrong: $e",
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
+
   Future<File?> pickImageFromCamera() async {
     final picker = ImagePicker();
 
@@ -543,6 +560,20 @@ class DashboardController extends GetxController {
         return const Color(0xFFFDAA2B);
       default:
         return Colors.white;
+    }
+  }
+
+  String formatWorkHours(String hoursStr) {
+    final hours = double.tryParse(hoursStr) ?? 0;
+
+    final totalMinutes = (hours * 60).round();
+    final h = totalMinutes ~/ 60;
+    final m = totalMinutes % 60;
+
+    if (h > 0) {
+      return "$h h $m min";
+    } else {
+      return "$m min";
     }
   }
 
