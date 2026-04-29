@@ -29,27 +29,34 @@ class AttendanceRecord {
     this.status = '',
   });
 
-  factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
-    final loginRaw = json['login_time'] ?? json['login_at'] ?? json['check_in'];
-    final logoutRaw =
-        json['logout_time'] ?? json['logout_at'] ?? json['check_out'];
-    final bool present = loginRaw != null;
-    String date = loginRaw ?? '';
-    String? totalHours;
-    if (loginRaw != null && logoutRaw != null) {
-      totalHours =
-          json['total_work_hours']?.toString() ??
-          _calcHours(loginRaw, logoutRaw);
+  static AttendanceRecord? tryFromJson(Map<String, dynamic> json) {
+    try {
+      final loginAt = json['login_at'] as String?;
+      if (loginAt == null || loginAt.isEmpty) return null;
+
+      final loginRaw =
+          json['login_time'] ?? json['login_at'] ?? json['check_in'];
+      final logoutRaw =
+          json['logout_time'] ?? json['logout_at'] ?? json['check_out'];
+      final bool present = loginRaw != null;
+      String? totalHours;
+      if (loginRaw != null && logoutRaw != null) {
+        totalHours =
+            json['total_work_hours']?.toString() ??
+            _calcHours(loginRaw, logoutRaw);
+      }
+
+      return AttendanceRecord(
+        date: loginRaw ?? '',
+        loginAt: loginAt,
+        logoutAt: json['logout_at'] as String?,
+        totalHours: totalHours,
+        isPresent: present,
+      );
+    } catch (e) {
+      print("AttendanceRecord.tryFromJson error: $e | data: $json");
+      return null;
     }
-    return AttendanceRecord(
-      date: date,
-      loginAt: json['login_at'],
-      logoutAt: json['logout_at'],
-      // loginTime: loginRaw != null ? _formatTime(loginRaw) : null,
-      // logoutTime: logoutRaw != null ? _formatTime(logoutRaw) : null,
-      totalHours: totalHours,
-      isPresent: present,
-    );
   }
 
   // static String _formatTime(String raw) {
@@ -148,7 +155,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   // Today Record
   Map<String, dynamic>? todayRecord = {};
   bool isLoadingToday = false;
-
+  Map<String, dynamic>? shiftData;
   // History
   List<AttendanceRecord> historyList = [];
   bool isLoadingHistory = false;
@@ -202,35 +209,68 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> onQrScanned(String qrData) async {
     if (qrData.isEmpty) return;
-    print('QR DATA ======= $qrData');
-    print('QR DATA ======= $isProcessingQr');
 
     isProcessingQr = true;
-    lastScannedQrData = qrData;
     _safeUpdate();
-
-    isQrScannerOpen = false;
-    _safeUpdate();
-
 
     try {
-    final decoded = jsonDecode(qrData);
-    final qrToken = decoded["qr_token"];
+      await checkAttendanceStatus();
+      await fetchAttendanceHistory();
+      await fetchShift();
+      if (shiftData == null) {
+        await assignShift(employeeId!);
+        await fetchShift();
+        _showError("Shift not assigned. Contact admin.");
+        return;
+      }
+      if (!isCheckedIn) {
+        isCheckedIn = isUserLoggedIn;
+      }
+      final decoded = jsonDecode(qrData);
+      final qrToken = decoded["qr_token"];
 
-    if (isCheckedIn) {
-      print('calling logout ');
-      await _markLogoutWithQr(qrToken);
-    } else {
-      print('calling login ');
-      await _markLoginWithQr(qrToken);
-    }
+      if (isCheckedIn) {
+        print(" User already logged in → logging OUT");
+        await _markLogoutWithQr(qrToken);
+      } else {
+        print("User not logged in → logging IN");
+        await _markLoginWithQr(qrToken);
+      }
     } catch (e) {
-    print('ERROR IS =======$e');
-    _showError("Invalid QR format");
+      _showError("QR Error: $e");
+    } finally {
+      isProcessingQr = false;
+      _safeUpdate();
     }
+  }
 
-    isProcessingQr = false;
-    _safeUpdate();
+  Future<bool> assignShift(int employeeId) async {
+    try {
+      final res = await ApiService.post(
+        "/shift",
+        body: {
+          'employee_id': employeeId,
+          'shift_start_time': '09:00:00',
+          'shift_end_time': '18:00:00',
+          'late_grace_minutes': 15,
+          'half_day_hours': 4,
+          'overtime_after_hours': 8,
+        },
+        isAuth: true,
+      );
+
+      print("AUTO SHIFT RESPONSE: $res");
+      return res['success'] == true;
+    } catch (e) {
+      if (e.toString().contains("Shift setting not found")) {
+        _showError("Logout allowed but shift missing (backend issue)");
+        await _markLogout();
+        return false;
+      }
+
+      print("assignShift error: $e");
+      return false;
+    }
   }
 
   Future<void> openCameraForScan() async {
@@ -501,9 +541,8 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       errorMessage = 'Check-in failed. Try again.';
       _safeUpdate();
       _showError(errorMessage!);
-    }finally{
+    } finally {
       isProcessingQr = false;
-
     }
   }
 
@@ -578,49 +617,40 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _markLoginWithQr(String qrData) async {
-    // try {
-    print('the qr data is ====$qrData');
-    isProcessingQr = true;
-    _safeUpdate();
-    final employeeId = await ApiService.getEmployeeId();
-    if (employeeId == null) {
-      _showError("Employee ID not found");
-      return;
-    }
-
-    final position = await _getLocation();
-    if (position == null) return;
-
-    final response = await ApiService.post(
-      Apis.employeeloginbyQR,
-      body: {
-        "qr_token": qrData,
-        "latitude": position.latitude.toString(),
-        "longitude": position.longitude.toString(),
-
-        "employee_id": employeeId,
-      },
-      isAuth: true,
-    );
-    print("QR LOGIN RESPONSE ======= $response");
     try {
-      print('the qr data is ====$qrData');
-
       isProcessingQr = true;
       _safeUpdate();
+      final employeeId = await ApiService.getEmployeeId();
+      if (employeeId == null) {
+        _showError("Employee ID not found");
+        return;
+      }
+      final position = await _getLocation();
+      if (position == null) return;
 
-    isCheckedIn = true;
-    markedTime = TimeOfDay.now().format(Get.context!);
-    _showSuccess("QR Check-In Successful");
-    await fetchTodayAttendance();
-    await fetchAttendanceHistory();
+      final response = await ApiService.post(
+        Apis.employeeloginbyQR,
+        body: {
+          "qr_token": qrData,
+          "latitude": position.latitude.toString(),
+          "longitude": position.longitude.toString(),
+          "employee_id": employeeId,
+        },
+        isAuth: true,
+      );
+      print("QR LOGIN RESPONSE ======= $response");
       isCheckedIn = true;
       markedTime = TimeOfDay.now().format(Get.context!);
       _showSuccess("QR Check-In Successful");
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
     } catch (e) {
-      _showError("QR Login Failed");
+      if (e.toString().contains("logout first")) {
+        isCheckedIn = true;
+        _showError("Already checked in. Please scan again to logout.");
+      } else {
+        _showError("QR Login Failed: ${e.toString()}");
+      }
     } finally {
       isProcessingQr = false;
       _safeUpdate();
@@ -628,19 +658,24 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _markLogoutWithQr(String qrData) async {
-
     try {
       isProcessingQr = true;
       _safeUpdate();
       final employeeId = await ApiService.getEmployeeId();
-
       if (employeeId == null) {
         _showError("Employee ID not found");
         return;
       }
+      final position = await _getLocation();
+
       final response = await ApiService.post(
         Apis.employeelogoutbyQR,
-        body: {"qr_token": qrData, "employee_id": employeeId},
+        body: {
+          "qr_token": qrData,
+          "employee_id": employeeId,
+          "latitude": position!.latitude.toString(),
+          "longitude": position.longitude.toString(),
+        },
         isAuth: true,
       );
       print("QR LOGOUT RESPONSE ======== $response");
@@ -650,10 +685,29 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
     } catch (e) {
-      _showError("QR Logout Failed");
+      print("QR Logout Error: $e");
+      _showError("QR Logout Failed: ${e.toString()}");
     } finally {
       isProcessingQr = false;
       _safeUpdate();
+    }
+  }
+
+  Future<void> fetchShift() async {
+    if (employeeId == null) return;
+    final res = await getShift(employeeId!);
+    if (res != null && res['success'] == true) {
+      final List list = res['data'];
+      final filtered = list.where((e) {
+        return e['employee_id'] == employeeId;
+      }).toList();
+      if (filtered.isNotEmpty) {
+        shiftData = filtered.first;
+      } else {
+        shiftData = null;
+      }
+    } else {
+      shiftData = null;
     }
   }
 
@@ -681,22 +735,30 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     if (id == null) return;
     try {
       final res = await ApiService.get(Apis.attendanceStatus(id));
-      print('user respone of present attendance ====$res');
       if (res is Map) {
         final status = (res['status'] ?? '').toString().toLowerCase();
-        switch (status) {
-          case 'checked_in':
-          case 'logged_in':
-          case 'present':
-            isCheckedIn = true;
-            break;
-          default:
-            isCheckedIn = false;
+        const checkedInStatuses = {'checked_in', 'logged_in', 'present'};
+        const checkedOutStatuses = {
+          'checked_out',
+          'logged_out',
+          'absent',
+          'not_checked_in',
+        };
+
+        if (checkedInStatuses.contains(status)) {
+          isCheckedIn = true;
+        } else if (checkedOutStatuses.contains(status)) {
+          isCheckedIn = false;
+        } else {
+          print("Unknown status: '$status' — falling back to history");
+          isCheckedIn = isUserLoggedIn;
         }
       }
-      _safeUpdate();
     } catch (e) {
       debugPrint('Status check error: $e');
+      isCheckedIn = isUserLoggedIn;
+    } finally {
+      _safeUpdate();
     }
   }
 
@@ -719,52 +781,38 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> fetchAttendanceHistory() async {
-    final today = DateTime.now();
     final id = employeeId;
     if (id == null) return;
     isLoadingHistory = true;
     _safeUpdate();
     try {
       final dynamic response = await ApiService.get(Apis.attendanceHistory(id));
-      print('History of user attendance === $response');
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
       } else if (response is Map && response['data'] != null) {
         rawList = response['data'] as List<dynamic>;
       }
+
       historyList = rawList
-          .map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
+          .cast<Map<String, dynamic>>()
+          .where((e) {
+            final empId = e['employee']?['id'];
+            return empId == id;
+          })
+          .map((e) => AttendanceRecord.tryFromJson(e))
+          .whereType<AttendanceRecord>()
           .toList();
+      print("Current Employee ID: $employeeId");
+      print("Latest record employee: ${historyList.first.loginAt}");
+      print("Latest logout: ${historyList.first.logoutAt}");
       historyList.sort((a, b) {
         try {
           return DateTime.parse(b.loginAt).compareTo(DateTime.parse(a.loginAt));
-        } catch (e) {
-          print("Sorting error: $e");
+        } catch (_) {
           return 0;
         }
       });
-      for (var item in historyList) {
-        try {
-          final loginDate = DateTime.parse(item.loginAt).toLocal();
-          if (loginDate.year == today.year &&
-              loginDate.month == today.month &&
-              loginDate.day == today.day) {
-
-            print("TODAY attendance RECORD FOUND");
-            print("Login: ${formatDateTime(item.loginAt)}");
-            print("Login: ${loginDate}");
-            print(
-              "Logout: ${item.logoutAt != null ? formatDateTime(item.logoutAt!) : "Not logged out"}",
-            );
-            print(
-              "===========today attendance recode by date=========$loginDate",
-            );
-          }
-        } catch (e) {
-          print("Error parsing date: $e");
-        }
-      }
     } catch (e) {
       debugPrint('History fetch error: $e');
     } finally {
@@ -774,21 +822,23 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   bool get isUserLoggedIn {
-    final today = DateTime.now();
+    if (historyList.isEmpty) return false;
 
-    for (var item in historyList) {
-      try {
-        final loginDate = DateTime.parse(item.loginAt).toLocal();
+    final latest = historyList.first;
+    return latest.logoutAt == null;
+  }
 
-        if (loginDate.year == today.year &&
-            loginDate.month == today.month &&
-            loginDate.day == today.day) {
-          return item.logoutAt == null;
-        }
-      } catch (_) {}
+  String formatWorkHours(String hoursStr) {
+    final hours = double.tryParse(hoursStr) ?? 0;
+    final totalMinutes = (hours * 60).round();
+    final h = totalMinutes ~/ 60;
+    final m = totalMinutes % 60;
+
+    if (h > 0) {
+      return "$h h $m min";
+    } else {
+      return "$m min";
     }
-
-    return false;
   }
 
   String formatDateTime(String dateTime) {

@@ -129,7 +129,7 @@ class DashboardController extends GetxController {
       }
 
       final todayStr = DateTime.now().toUtc().toString().substring(0, 10);
-      final todayLocal = DateTime.now().toString().substring(0, 10);
+      final todayLocal = DateTime.now().toLocal().toString().substring(0, 10);
 
       // print(
       //   'Looking for date====== $todayStr or $todayLocal, employeeId........ $id',
@@ -142,7 +142,7 @@ class DashboardController extends GetxController {
             ? empObj['id']?.toString()
             : map['employee_id']?.toString();
 
-        if (empId != id.toString()) continue;
+        if (empId != null && empId != id.toString()) continue;
         final loginAt = map['login_at']?.toString() ?? '';
         if (loginAt.startsWith(todayStr) || loginAt.startsWith(todayLocal)) {
           todayRecord = map;
@@ -560,6 +560,20 @@ class DashboardController extends GetxController {
         return const Color(0xFFFDAA2B);
       default:
         return Colors.white;
+    }
+  }
+
+  String formatWorkHours(String hoursStr) {
+    final hours = double.tryParse(hoursStr) ?? 0;
+
+    final totalMinutes = (hours * 60).round();
+    final h = totalMinutes ~/ 60;
+    final m = totalMinutes % 60;
+
+    if (h > 0) {
+      return "$h h $m min";
+    } else {
+      return "$m min";
     }
   }
 

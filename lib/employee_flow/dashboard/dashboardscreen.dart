@@ -16,7 +16,9 @@ class DashboardPage extends StatelessWidget {
         return Scaffold(
           backgroundColor: const Color(0xFFF8F9FE),
           body: RefreshIndicator(
-            onRefresh: () async { await controller.loadDashboardData(); },
+            onRefresh: () async {
+              await controller.loadDashboardData();
+            },
             child: SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
@@ -309,7 +311,12 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton({required IconData icon, required String label, required Color color, required VoidCallback onTap,}) {
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -408,7 +415,7 @@ class DashboardPage extends StatelessWidget {
 
           _buildStatCard(
             'Hours',
-            controller.monthlyHours.toString(),
+            controller.formatWorkHours(controller.monthlyHours.toString()),
             'hrs',
             Colors.teal,
           ),
@@ -417,7 +424,12 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, String subtitle, Color color,) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    String subtitle,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -511,7 +523,12 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildLeaveItem({required String type, required String date, required String duration, required Color color,}) {
+  Widget _buildLeaveItem({
+    required String type,
+    required String date,
+    required String duration,
+    required Color color,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

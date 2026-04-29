@@ -210,10 +210,10 @@ class ApiService {
   }
 
   static Future<dynamic> post(
-      String endpoint, {
-        required Map<String, dynamic> body,
-        bool isAuth = true,
-      }) async {
+    String endpoint, {
+    required Map<String, dynamic> body,
+    bool isAuth = true,
+  }) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders(withAuth: isAuth);
 
@@ -243,6 +243,7 @@ class ApiService {
       );
     }
   }
+
   static Future<dynamic> put(String endpoint, Map<String, dynamic> body) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders();
@@ -308,58 +309,69 @@ class ApiService {
     final token = await getToken();
     if (filePath != null) {
       try {
-      final request = http.MultipartRequest('POST', url)
-        ..headers['Accept'] = 'application/json'
-        ..fields.addAll(fields);
-      if (token != null && token.isNotEmpty) {
-        request.headers['Authorization'] = 'Bearer $token';
-      }
-      if (filePath != null && filePath.isNotEmpty) {
-        request.files.add(
-          await http.MultipartFile.fromPath(fileField, filePath),
+        final request = http.MultipartRequest('POST', url)
+          ..headers['Accept'] = 'application/json'
+          ..fields.addAll(fields);
+        if (token != null && token.isNotEmpty) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+        if (filePath != null && filePath.isNotEmpty) {
+          request.files.add(
+            await http.MultipartFile.fromPath(fileField, filePath),
+          );
+        }
+        final streamed = await request.send().timeout(_requestTimeout);
+        final response = await http.Response.fromStream(streamed);
+        return _handleResponse(response);
+      } on TimeoutException {
+        throw ApiException(
+          statusCode: 408,
+          message: 'Request timed out. Please try again.',
         );
+      } catch (e) {
+        rethrow;
       }
-      final streamed = await request.send().timeout(_requestTimeout);
-      final response = await http.Response.fromStream(streamed);
-      return _handleResponse(response);
-    } on TimeoutException {
-      throw ApiException(
-        statusCode: 408,
-        message: 'Request timed out. Please try again.',
-      );
-    } catch (e) {
-      rethrow;
-    }
     }
   }
 
   //  error handler
   static Map<String, dynamic>? _handleResponse(http.Response response) {
+    print("STATUS: ${response.statusCode}");
+    print("BODY: ${response.body}");
 
-    final res= jsonDecode(response.body);
+    if (response.body.isEmpty) {
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: "Empty response from server",
+      );
+    }
+
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return decoded;
     }
+
     if (response.statusCode == 401) {
       throw ApiException(
         statusCode: 401,
         message: decoded['message'] ?? 'Session expired.',
       );
     }
+
     if (response.statusCode == 422) {
       final errors = decoded['errors'] as Map<String, dynamic>?;
       final firstError = errors?.values.first;
       final message = firstError is List
           ? firstError.first
           : decoded['message'];
+
       throw ApiException(
         statusCode: 422,
         message: message ?? 'Validation error',
       );
     }
-    Get.snackbar('Error ', res['message'],backgroundColor: Colors.red,colorText: Colors.white);
-    return null;
+
     throw ApiException(
       statusCode: response.statusCode,
       message: decoded['message'] ?? 'Something went wrong',
@@ -374,4 +386,16 @@ class ApiException implements Exception {
   ApiException({required this.statusCode, required this.message});
   @override
   String toString() => 'ApiException($statusCode): $message';
+}
+
+//shift
+Future<Map<String, dynamic>?> getShift(int employeeId) async {
+  try {
+    final response = await ApiService.get("/shift?employee_id=$employeeId");
+
+    return response;
+  } catch (e) {
+    print("Shift API Error: $e");
+    return null;
+  }
 }
