@@ -1,7 +1,9 @@
 import 'package:employee_app/api_service.dart';
+import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 class AuthController extends GetxController {
   final loginEmailController = TextEditingController();
@@ -24,7 +26,6 @@ class AuthController extends GetxController {
     update();
   }
 
-  //  LOGIN
   Future<void> login() async {
     final email = loginEmailController.text.trim();
     final password = loginPasswordController.text.trim();
@@ -34,55 +35,67 @@ class AuthController extends GetxController {
     }
     isLoginLoading = true;
     update();
-
     try {
       final data = await ApiService.login(email: email, password: password);
       print(data);
+
       final token = data?["token"];
       final employee = data?["employee"] ?? data?["user"] ?? data?["data"];
-      //token
-
       if (token != null) {
         await ApiService.saveToken(token);
         print("TOKEN SAVED === $token");
       }
+
       final savedToken = await ApiService.getToken();
       print("AFTER LOGIN TOKEN === $savedToken");
-      // employee
       if (employee != null) {
         await ApiService.saveEmployee(employee);
       }
-      //organization id
+
       if (employee != null && employee["organization_id"] != null) {
         await ApiService.saveOrganizationId(
           employee["organization_id"].toString(),
         );
       }
-      // print('print the data of login user ===$data');
+
+      if (employee != null) {
+        final employeeId = employee['id'];
+        await GetStorage().write('employeeId', employeeId);
+        print("EMPLOYEE ID SAVED === $employeeId");
+        final ctrl = Get.find<EmployeeFeatureController>();
+        await ctrl.loadPermissions(employeeId);
+
+        print(
+          "PERMISSIONS LOADED → salary:${ctrl.canViewSalary} face:${ctrl.canUseFace}",
+        );
+      }
       final roleId = employee?["role_id"];
-      // print("ROLE ID = $roleId");
       if (roleId == 3) {
         Get.offAllNamed("/home");
       } else {
         Get.offAllNamed(AppRoutes.MAIN_SHELL);
       }
     } catch (e) {
-      print('error is $e');
-      _showError("Please check your id & password $e");
+      print('login error: $e');
+      _showError("Please check your id & password");
     }
 
     isLoginLoading = false;
     update();
   }
 
-  // LOGOUT
   Future<void> logout() async {
     await ApiService.clearToken();
+    await GetStorage().remove('employeeId');
+    final ctrl = Get.find<EmployeeFeatureController>();
+    ctrl.reset();
+
     token = null;
     employee = null;
     loginEmailController.clear();
     loginPasswordController.clear();
     update();
+
     Get.offAllNamed('/login');
   }
 
@@ -104,7 +117,6 @@ class AuthController extends GetxController {
     update();
   }
 
-  // Dispose
   @override
   void onClose() {
     loginEmailController.dispose();

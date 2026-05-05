@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:camera/camera.dart';
+import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -24,7 +25,6 @@ class AttendancePage extends StatelessWidget {
             ),
             onPressed: () => Get.back(),
           ),
-
           title: const Text(
             'Mark Attendance',
             style: TextStyle(
@@ -37,13 +37,31 @@ class AttendancePage extends StatelessWidget {
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 10),
-              child: IconButton(
-                tooltip: 'Face Recognition',
-                icon: const Icon(Icons.face_rounded, color: Color(0xFF6C5CE7)),
-                // onPressed: controller.isScanning || controller.isProcessingQr
-                //     ? null
-                //     : () => _openFaceSheet(context, controller),
-                onPressed: () => _showComingSoon(context),
+              child: GetBuilder<EmployeeFeatureController>(
+                builder: (ctrl) {
+                  return IconButton(
+                    tooltip: ctrl.canUseFace
+                        ? 'Face Recognition'
+                        : 'Face Recognition (Not Allowed)',
+                    icon: Icon(
+                      Icons.face_rounded,
+                      color: ctrl.canUseFace
+                          ? const Color(0xFF6C5CE7)
+                          : Colors.grey.shade400,
+                    ),
+                    onPressed: ctrl.canUseFace
+                        ? () => _openFaceSheet(context, controller)
+                        : () {
+                            Get.snackbar(
+                              'Access Denied',
+                              'Face recognition permission not granted by admin',
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                              snackPosition: SnackPosition.BOTTOM,
+                            );
+                          },
+                  );
+                },
               ),
             ),
           ],
@@ -276,39 +294,13 @@ class AttendancePage extends StatelessWidget {
     );
   }
 
-  // void _openFaceSheet(BuildContext context, AttendanceController controller) {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     isScrollControlled: true,
-  //     backgroundColor: Colors.transparent,
-  //     enableDrag: false,
-  //     builder: (_) => _FaceRecognitionSheet(controller: controller),
-  //   );
-  // }
-  void _showComingSoon(BuildContext context) {
+  void _openFaceSheet(BuildContext context, AttendanceController controller) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        height: 250,
-        decoration: const BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.face_rounded, size: 60, color: Colors.white),
-            SizedBox(height: 20),
-            Text(
-              "Face Recognition",
-              style: TextStyle(color: Colors.white, fontSize: 20),
-            ),
-            SizedBox(height: 10),
-            Text("Coming Soon 🚀", style: TextStyle(color: Colors.white70)),
-          ],
-        ),
-      ),
+      enableDrag: false,
+      builder: (_) => _FaceRecognitionSheet(controller: controller),
     );
   }
 
@@ -599,7 +591,6 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
   Future<void> _initAndScan() async {
     if (_started) return;
     _started = true;
-
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
@@ -639,25 +630,20 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
 
   Future<void> _capture() async {
     if (_processing || _cam == null || !_cam!.value.isInitialized) return;
-
     setState(() {
       _processing = true;
       _error = null;
     });
-
     try {
-      // Brief flash effect
       await Future.delayed(const Duration(milliseconds: 200));
       final photo = await _cam!.takePicture();
       await _cam!.dispose();
       _cam = null;
-
       if (!mounted) return;
       setState(() {
         _processing = false;
         _success = true;
       });
-
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -691,7 +677,7 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
                 ? 'Face Check-Out'
                 : 'Face Check-In',
             onClose: _processing
-                ? null // can't close mid-capture
+                ? null
                 : () {
                     _cam?.dispose();
                     Navigator.pop(context);
@@ -700,7 +686,6 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
             titleColor: Colors.white,
             closeColor: Colors.white70,
           ),
-
           Expanded(
             child: Stack(
               fit: StackFit.expand,
@@ -712,12 +697,10 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
                   )
                 else
                   Container(color: const Color(0xFF1A1A2E)),
-
                 if (_cameraReady && !_success && !_processing)
                   Positioned.fill(
                     child: CustomPaint(painter: _FaceOverlayPainter()),
                   ),
-
                 if (_success)
                   Container(
                     color: const Color(0xFF00B894).withOpacity(0.85),
@@ -743,7 +726,6 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
                       ),
                     ),
                   ),
-
                 if (_processing && !_success)
                   Container(
                     color: Colors.black54,
@@ -761,7 +743,6 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
                       ),
                     ),
                   ),
-
                 if (!_cameraReady && !_success && _error == null)
                   const Center(
                     child: Column(
@@ -776,8 +757,6 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
                       ],
                     ),
                   ),
-
-                // Error overlay
                 if (_error != null)
                   Center(
                     child: Padding(
@@ -821,7 +800,6 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
                       ),
                     ),
                   ),
-
                 if (_cameraReady && !_processing && !_success && _error == null)
                   Positioned(
                     bottom: 32,
@@ -837,14 +815,9 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
                           color: Colors.black54,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(
-                          widget.controller.isCheckedIn
-                              ? 'Look at camera — capturing in 2s...'
-                              : 'Look at camera — capturing in 2s...',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
+                        child: const Text(
+                          'Look at camera — capturing in 2s...',
+                          style: TextStyle(color: Colors.white, fontSize: 13),
                         ),
                       ),
                     ),
@@ -858,6 +831,7 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
   }
 }
 
+// Shared helpers
 Widget _handle({Color color = Colors.black12}) => Container(
   margin: const EdgeInsets.only(top: 12, bottom: 8),
   width: 40,
@@ -905,7 +879,6 @@ class _OverlayPainter extends CustomPainter {
     const color = Color(0xFF6C5CE7);
     final l = (size.width - cut) / 2, t = (size.height - cut) / 2;
     final rect = Rect.fromLTWH(l, t, cut, cut);
-
     canvas.drawPath(
       Path.combine(
         PathOperation.difference,
@@ -915,13 +888,11 @@ class _OverlayPainter extends CustomPainter {
       ),
       Paint()..color = Colors.black.withOpacity(0.55),
     );
-
     final p = Paint()
       ..color = color
       ..strokeWidth = thick
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
-
     canvas
       ..drawPath(_corner(l, t, r, corner, 0), p)
       ..drawPath(_corner(l + cut, t, r, corner, 1), p)
@@ -979,21 +950,17 @@ class _OverlayPainter extends CustomPainter {
 class _FaceOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    const boxSize = 250.0;
-    const borderRadius = 20.0;
-    final cx = size.width / 2;
-    final cy = size.height / 2 - 20;
+    const boxSize = 250.0, borderRadius = 20.0;
+    final cx = size.width / 2, cy = size.height / 2 - 20;
     final rect = Rect.fromCenter(
       center: Offset(cx, cy),
       width: boxSize,
       height: boxSize,
     );
-
     final rrect = RRect.fromRectAndRadius(
       rect,
       const Radius.circular(borderRadius),
     );
-
     canvas.drawPath(
       Path.combine(
         PathOperation.difference,
@@ -1002,7 +969,6 @@ class _FaceOverlayPainter extends CustomPainter {
       ),
       Paint()..color = Colors.black.withOpacity(0.5),
     );
-
     canvas.drawRRect(
       rrect,
       Paint()
