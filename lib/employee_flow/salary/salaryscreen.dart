@@ -1,3 +1,4 @@
+import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'salary_controller.dart';
@@ -7,10 +8,9 @@ class SalaryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<SalaryController>(
-      init: SalaryController(),
-      builder: (controller) {
-        if (controller.isLoading) {
+    return GetBuilder<EmployeeFeatureController>(
+      builder: (featureCtrl) {
+        if (featureCtrl.isLoading) {
           return const Scaffold(
             backgroundColor: Color(0xFFF8F9FE),
             body: Center(
@@ -19,58 +19,152 @@ class SalaryPage extends StatelessWidget {
           );
         }
 
-        if (controller.errorMessage != null &&
-            controller.salaryDetail == null) {
+        if (!featureCtrl.canViewSalary) {
           return Scaffold(
             backgroundColor: const Color(0xFFF8F9FE),
-            body: Center(child: Text(controller.errorMessage!)),
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: const SizedBox(),
+              title: const Text(
+                'Salary Details',
+                style: TextStyle(
+                  color: Color(0xFF2D3436),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock_rounded,
+                        size: 44,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Access Denied',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D3436),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'You do not have permission to view salary details.\nPlease contact your admin.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF74788D),
+                        height: 1.6,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Go Back',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C5CE7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 28,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         }
 
-        final s = controller.salaryDetail;
+        return GetBuilder<SalaryController>(
+          init: SalaryController(),
+          builder: (controller) {
+            if (controller.isLoading) {
+              return const Scaffold(
+                backgroundColor: Color(0xFFF8F9FE),
+                body: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF00B894)),
+                ),
+              );
+            }
 
-        return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FE),
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: SizedBox(),
-            title: const Text(
-              'Salary Details',
-              style: TextStyle(
-                color: Color(0xFF2D3436),
-                fontWeight: FontWeight.bold,
+            if (controller.errorMessage != null &&
+                controller.salaryDetail == null) {
+              return Scaffold(
+                backgroundColor: const Color(0xFFF8F9FE),
+                body: Center(child: Text(controller.errorMessage!)),
+              );
+            }
+
+            final s = controller.salaryDetail;
+
+            return Scaffold(
+              backgroundColor: const Color(0xFFF8F9FE),
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: const SizedBox(),
+                title: const Text(
+                  'Salary Details',
+                  style: TextStyle(
+                    color: Color(0xFF2D3436),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                centerTitle: true,
               ),
-            ),
-            centerTitle: true,
-          ),
-          body: RefreshIndicator(
-            onRefresh: controller.fetchSalary,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (s != null) _netCard(controller, s),
-                  const SizedBox(height: 20),
-
-                  if (s != null) _fullDetails(controller, s),
-                  const SizedBox(height: 20),
-
-                  if (s != null) _breakdown(controller, s),
-                  const SizedBox(height: 20),
-
-                  if (s != null) _history(controller, s),
-                ],
+              body: RefreshIndicator(
+                onRefresh: controller.fetchSalary,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (s != null) _netCard(controller, s),
+                      const SizedBox(height: 20),
+                      if (s != null) _fullDetails(controller, s),
+                      const SizedBox(height: 20),
+                      if (s != null) _breakdown(controller, s),
+                      const SizedBox(height: 20),
+                      if (s != null) _history(controller, s),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  // 🔥 Net Card
   Widget _netCard(SalaryController c, s) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -88,15 +182,18 @@ class SalaryPage extends StatelessWidget {
           Text(
             '₹${c.formatAmount(s.netSalary)}',
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 36,
-                fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 20),
           Row(
             children: [
               Expanded(child: _metric('Gross', c.formatAmount(s.grossSalary))),
-              Expanded(child: _metric('Deduction', c.formatAmount(s.deductions))),
+              Expanded(
+                child: _metric('Deduction', c.formatAmount(s.deductions)),
+              ),
             ],
           ),
         ],
@@ -108,14 +205,17 @@ class SalaryPage extends StatelessWidget {
     return Column(
       children: [
         Text(title, style: const TextStyle(color: Colors.white70)),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
 
-  // 🔥 FULL DETAILS
   Widget _fullDetails(SalaryController c, s) {
     Widget row(String t, String v) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -123,10 +223,13 @@ class SalaryPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(t, style: const TextStyle(color: Color(0xFF74788D))),
-          Text(v,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2D3436))),
+          Text(
+            v,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2D3436),
+            ),
+          ),
         ],
       ),
     );
@@ -153,30 +256,29 @@ class SalaryPage extends StatelessWidget {
     );
   }
 
-  // 🔥 Breakdown
   Widget _breakdown(SalaryController c, s) {
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _title('Salary Breakdown'),
-          ...s.allowances.map<Widget>((e) => _rowItem(
-              e['name'], '₹${c.formatAmount(e['amount'] ?? 0)}')),
+          ...s.allowances.map<Widget>(
+            (e) => _rowItem(e['name'], '₹${c.formatAmount(e['amount'] ?? 0)}'),
+          ),
           const Divider(),
           _title('Deductions'),
-          ...s.deductionItems.map<Widget>((e) => _rowItem(
-              e['name'], '₹${c.formatAmount(e['amount'] ?? 0)}')),
+          ...s.deductionItems.map<Widget>(
+            (e) => _rowItem(e['name'], '₹${c.formatAmount(e['amount'] ?? 0)}'),
+          ),
         ],
       ),
     );
   }
 
-  // 🔥 History
   Widget _history(SalaryController c, s) {
     if (s.payrollHistory.isEmpty) {
       return _card(child: const Text('No payroll history'));
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -197,7 +299,6 @@ class SalaryPage extends StatelessWidget {
     );
   }
 
-  // 🔥 Common Widgets
   Widget _card({required Widget child}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -216,9 +317,10 @@ class SalaryPage extends StatelessWidget {
       child: Text(
         t,
         style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF2D3436)),
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF2D3436),
+        ),
       ),
     );
   }

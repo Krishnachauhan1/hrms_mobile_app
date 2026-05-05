@@ -1,8 +1,8 @@
 import 'package:employee_app/authentication/splash_scree.dart';
+import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:employee_app/api_service.dart';
 import 'package:employee_app/authentication/auth_controller.dart';
 import 'package:employee_app/authentication/login_screen.dart';
 import 'package:employee_app/employee_flow/bottomnav/homepage.dart';
@@ -10,14 +10,16 @@ import 'package:employee_app/employee_flow/bottomnav/homepage.dart';
 // HR routes
 import 'package:employee_app/hr_flow/routes/app_pages.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
+import 'package:get_storage/get_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await GetStorage.init();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
-
-  runApp(HRMSApp());
+  Get.put(EmployeeFeatureController(), permanent: true);
+  runApp(const HRMSApp());
 }
 
 class HRMSApp extends StatelessWidget {
