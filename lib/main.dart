@@ -10,11 +10,9 @@ import 'package:employee_app/employee_flow/bottomnav/homepage.dart';
 // HR routes
 import 'package:employee_app/hr_flow/routes/app_pages.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
-import 'package:get_storage/get_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await GetStorage.init();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );

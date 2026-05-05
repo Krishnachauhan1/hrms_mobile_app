@@ -1,6 +1,5 @@
 import 'package:employee_app/api_service.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 
 class EmployeeFeatureController extends GetxController {
   bool canViewSalary = false;
@@ -10,7 +9,12 @@ class EmployeeFeatureController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final employeeId = GetStorage().read('employeeId');
+    _initPermissions();
+  }
+
+  Future<void> _initPermissions() async {
+    final employeeId = await ApiService.getEmployeeId();
+
     if (employeeId != null) {
       loadPermissions(employeeId);
     }
