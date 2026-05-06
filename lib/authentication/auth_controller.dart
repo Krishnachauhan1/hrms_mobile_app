@@ -3,7 +3,6 @@ import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 
 class AuthController extends GetxController {
   final loginEmailController = TextEditingController();
@@ -60,7 +59,6 @@ class AuthController extends GetxController {
 
       if (employee != null) {
         final employeeId = employee['id'];
-        await GetStorage().write('employeeId', employeeId);
         print("EMPLOYEE ID SAVED === $employeeId");
         final ctrl = Get.find<EmployeeFeatureController>();
         await ctrl.loadPermissions(employeeId);
@@ -86,7 +84,6 @@ class AuthController extends GetxController {
 
   Future<void> logout() async {
     await ApiService.clearToken();
-    await GetStorage().remove('employeeId');
     final ctrl = Get.find<EmployeeFeatureController>();
     ctrl.reset();
 
