@@ -26,11 +26,21 @@ class EmployeeFeatureController extends GetxController {
 
     try {
       final res = await ApiService.get(
-        'employee-permissions/employee/$employeeId',
+        '/employee-permissions/employee/$employeeId',
       );
       final data = res['data'];
-      canViewSalary = data['can_view_salary'] == 1;
-      canUseFace = data['can_use_face_recognition'] == 1;
+      canViewSalary =
+          data['can_view_salary'] == 1 ||
+          data['can_view_salary'] == true ||
+          data['can_view_salary'].toString() == '1';
+
+      canUseFace =
+          data['can_use_face_recognition'] == 1 ||
+          data['can_use_face_recognition'] == true ||
+          data['can_use_face_recognition'].toString() == '1';
+      print("PERMISSION RESPONSE = $res");
+      print("FACE VALUE = ${data['can_use_face_recognition']}");
+      print("SALARY VALUE = ${data['can_view_salary']}");
     } catch (e) {
       canViewSalary = false;
       canUseFace = false;

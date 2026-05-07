@@ -629,7 +629,10 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
   }
 
   Future<void> _capture() async {
-    if (_processing || _cam == null || !_cam!.value.isInitialized) return;
+    if (_processing || _cam == null || !_cam!.value.isInitialized) {
+      return;
+    }
+
     setState(() {
       _processing = true;
       _error = null;
@@ -637,15 +640,27 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
     try {
       await Future.delayed(const Duration(milliseconds: 200));
       final photo = await _cam!.takePicture();
-      await _cam!.dispose();
+      final tempCam = _cam;
       _cam = null;
+      _cameraReady = false;
+      if (mounted) {
+        setState(() {});
+      }
+      await tempCam?.dispose();
+      if (widget.controller.isCheckedIn) {
+        await widget.controller.markFaceCheckOut(photo.path);
+      } else {
+        await widget.controller.markFaceCheckIn(photo.path);
+      }
       if (!mounted) return;
       setState(() {
         _processing = false;
         _success = true;
       });
       await Future.delayed(const Duration(seconds: 2));
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
       _setError('Scan failed. Please try again.');
     }
@@ -690,7 +705,10 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (_cameraReady && _cam != null && !_success)
+                if (_cameraReady &&
+                    _cam != null &&
+                    _cam!.value.isInitialized &&
+                    !_success)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(0),
                     child: CameraPreview(_cam!),

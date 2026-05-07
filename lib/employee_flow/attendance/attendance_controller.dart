@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:camera/camera.dart';
+import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -447,13 +448,20 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> startCheckIn() async {
     if (isScanning) return;
+
     errorMessage = null;
+
     _safeUpdate();
+
     await openCameraForScan();
+
     await Future.delayed(const Duration(milliseconds: 800));
+
     await _markLogin();
+
     if (isUserLoggedIn) {
       print("Already logged in");
+
       return;
     }
   }
@@ -467,7 +475,37 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     await _markLogout();
   }
 
-  Future<void> _markLogin({Map<String, String> extraFields = const {}}) async {
+  Future<void> markFaceCheckIn(String imagePath) async {
+    final employeeId = await ApiService.getEmployeeId();
+
+    final featureCtrl = Get.find<EmployeeFeatureController>();
+
+    if (!featureCtrl.canUseFace) {
+      _showError("Face recognition access denied");
+
+      return;
+    }
+
+    await _markLogin(imagePath: imagePath);
+  }
+
+  Future<void> markFaceCheckOut(String imagePath) async {
+    final employeeId = await ApiService.getEmployeeId();
+    final featureCtrl = Get.find<EmployeeFeatureController>();
+
+    if (!featureCtrl.canUseFace) {
+      _showError("Face recognition access denied");
+
+      return;
+    }
+
+    await _markLogout(imagePath: imagePath);
+  }
+
+  Future<void> _markLogin({
+    String? imagePath,
+    Map<String, String> extraFields = const {},
+  }) async {
     isScanning = true;
     _safeUpdate();
     try {
@@ -485,13 +523,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       //   return;
       // }
 
-      final photoPath = await _capturePhoto();
-      if (photoPath == null) {
-        isScanning = false;
-        await _closeCamera();
-        return;
-      }
-
       final fields = {
         'login_type': extraFields.containsKey('qr_code') ? 'qr' : 'face',
         'latitude': position.latitude.toString(),
@@ -504,7 +535,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       final dynamic response = await ApiService.postMultipart(
         Apis.attendanceLogin,
         fields: fields,
-        filePath: photoPath,
+        filePath: imagePath ?? '',
         fileField: 'image',
       );
       print('user attendance postion of ===$response');
@@ -546,19 +577,15 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _markLogout({Map<String, String> extraFields = const {}}) async {
+  Future<void> _markLogout({
+    String? imagePath,
+    Map<String, String> extraFields = const {},
+  }) async {
     isScanning = true;
     _safeUpdate();
     try {
       final position = await _getLocation();
       if (position == null) {
-        isScanning = false;
-        await _closeCamera();
-        return;
-      }
-
-      final photoPath = await _capturePhoto();
-      if (photoPath == null) {
         isScanning = false;
         await _closeCamera();
         return;
@@ -573,7 +600,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       await ApiService.postMultipart(
         Apis.attendanceLogout,
         fields: fields,
-        filePath: photoPath,
+        filePath: imagePath ?? '',
         fileField: 'image',
       );
 
