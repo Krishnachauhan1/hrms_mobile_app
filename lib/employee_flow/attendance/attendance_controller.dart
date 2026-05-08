@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:camera/camera.dart';
 import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:flutter/material.dart';
@@ -132,7 +134,9 @@ class AttendanceRecord {
 
 class AttendanceController extends GetxController with WidgetsBindingObserver {
   int? employeeId;
-
+  late final AudioPlayer _successPlayer;
+  Timer? _locationTimer;
+  Position? currentPosition;
   // Camera
   CameraController? cameraController;
   bool isCameraInitialized = false;
@@ -167,7 +171,11 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
+    _successPlayer = AudioPlayer();
+    _successPlayer.setReleaseMode(ReleaseMode.stop);
     _loadAttendanceData();
+    fetchCurrentLocation();
+    startLocationTracking();
   }
 
   Future<void> _loadAttendanceData() async {
@@ -206,6 +214,28 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     isQrScannerOpen = false;
     isProcessingQr = false;
     _safeUpdate();
+  }
+
+  void startLocationTracking() {
+    _locationTimer?.cancel();
+
+    _locationTimer = Timer.periodic(const Duration(minutes: 10), (_) async {
+      await fetchCurrentLocation();
+    });
+  }
+
+  void _showLocationPopup() {
+    Get.defaultDialog(
+      title: "Location Required",
+      middleText:
+          "Please enable location to continue face recognition attendance.",
+      textConfirm: "Open Settings",
+      textCancel: "Cancel",
+      onConfirm: () async {
+        Get.back();
+        await Geolocator.openLocationSettings();
+      },
+    );
   }
 
   Future<void> onQrScanned(String qrData) async {
@@ -368,46 +398,46 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     } catch (_) {}
   }
 
-  Future<String?> _capturePhoto() async {
-    const maxWait = 5000;
-    int waited = 0;
-    while (waited < maxWait) {
-      if (cameraController != null &&
-          cameraController!.value.isInitialized &&
-          !_isCameraDisposed) {
-        break;
-      }
-      await Future.delayed(const Duration(milliseconds: 300));
-      waited += 300;
-    }
+  // Future<String?> _capturePhoto() async {
+  //   const maxWait = 5000;
+  //   int waited = 0;
+  //   while (waited < maxWait) {
+  //     if (cameraController != null &&
+  //         cameraController!.value.isInitialized &&
+  //         !_isCameraDisposed) {
+  //       break;
+  //     }
+  //     await Future.delayed(const Duration(milliseconds: 300));
+  //     waited += 300;
+  //   }
 
-    if (cameraController == null ||
-        !cameraController!.value.isInitialized ||
-        _isCameraDisposed) {
-      errorMessage = 'Camera not ready. Please try again.';
-      _safeUpdate();
-      return null;
-    }
+  //   if (cameraController == null ||
+  //       !cameraController!.value.isInitialized ||
+  //       _isCameraDisposed) {
+  //     errorMessage = 'Camera not ready. Please try again.';
+  //     _safeUpdate();
+  //     return null;
+  //   }
 
-    try {
-      isCapturing = true;
-      _safeUpdate();
-      await Future.delayed(const Duration(milliseconds: 800));
-      final XFile photo = await cameraController!.takePicture();
-      isCapturing = false;
-      _safeUpdate();
-      return photo.path;
-    } on CameraException catch (e) {
-      isCapturing = false;
-      errorMessage = 'Photo capture failed: ${e.description}';
-      _safeUpdate();
-      return null;
-    } catch (e) {
-      isCapturing = false;
-      _safeUpdate();
-      return null;
-    }
-  }
+  //   try {
+  //     isCapturing = true;
+  //     _safeUpdate();
+  //     await Future.delayed(const Duration(milliseconds: 800));
+  //     final XFile photo = await cameraController!.takePicture();
+  //     isCapturing = false;
+  //     _safeUpdate();
+  //     return photo.path;
+  //   } on CameraException catch (e) {
+  //     isCapturing = false;
+  //     errorMessage = 'Photo capture failed: ${e.description}';
+  //     _safeUpdate();
+  //     return null;
+  //   } catch (e) {
+  //     isCapturing = false;
+  //     _safeUpdate();
+  //     return null;
+  //   }
+  // }
 
   Future<Position?> _getLocation() async {
     try {
@@ -446,6 +476,41 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  Future<void> fetchCurrentLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        _showLocationPopup();
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showLocationPopup();
+        return;
+      }
+
+      currentPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      print(
+        "LOCATION FETCHED => "
+        "${currentPosition?.latitude}, "
+        "${currentPosition?.longitude}",
+      );
+    } catch (e) {
+      print("Location fetch error: $e");
+    }
+  }
+
   Future<void> startCheckIn() async {
     if (isScanning) return;
 
@@ -476,30 +541,71 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> markFaceCheckIn(String imagePath) async {
-    final employeeId = await ApiService.getEmployeeId();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-    final featureCtrl = Get.find<EmployeeFeatureController>();
-
-    if (!featureCtrl.canUseFace) {
-      _showError("Face recognition access denied");
-
+    if (!serviceEnabled) {
+      _showLocationPopup();
       return;
     }
 
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      permission = await Geolocator.requestPermission();
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showLocationPopup();
+        return;
+      }
+    }
+    // final employeeId = await ApiService.getEmployeeId();
+    final featureCtrl = Get.find<EmployeeFeatureController>();
+    if (!featureCtrl.canUseFace) {
+      _showError("Face recognition access denied");
+      return;
+    }
     await _markLogin(imagePath: imagePath);
   }
 
   Future<void> markFaceCheckOut(String imagePath) async {
-    final employeeId = await ApiService.getEmployeeId();
-    final featureCtrl = Get.find<EmployeeFeatureController>();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-    if (!featureCtrl.canUseFace) {
-      _showError("Face recognition access denied");
-
+    if (!serviceEnabled) {
+      _showLocationPopup();
       return;
     }
 
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      permission = await Geolocator.requestPermission();
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _showLocationPopup();
+        return;
+      }
+    }
+    final featureCtrl = Get.find<EmployeeFeatureController>();
+    if (!featureCtrl.canUseFace) {
+      _showError("Face recognition access denied");
+      return;
+    }
     await _markLogout(imagePath: imagePath);
+  }
+
+  Future<void> _playSuccessSound() async {
+    try {
+      await _successPlayer.stop();
+      await _successPlayer.play(
+        AssetSource('sounds/hrmsattendanceringtone.aac'),
+      );
+    } catch (e) {
+      debugPrint('Quick Salary sound error $e');
+    }
   }
 
   Future<void> _markLogin({
@@ -546,6 +652,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isRecognized = true;
       await _closeCamera();
       _safeUpdate();
+      await _playSuccessSound();
       _showSuccess('Punched IN at $markedTime');
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
@@ -609,6 +716,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isRecognized = true;
       markedTime = TimeOfDay.now().format(Get.context!);
       await _closeCamera();
+      await _playSuccessSound();
       _safeUpdate();
       _showSuccess('Punched Out at $markedTime');
       await fetchTodayAttendance();
@@ -668,7 +776,8 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       print("QR LOGIN RESPONSE ======= $response");
       isCheckedIn = true;
       markedTime = TimeOfDay.now().format(Get.context!);
-      _showSuccess("QR Check-In Successful");
+      await _playSuccessSound();
+      _showSuccess("QR Check-Out Successful");
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
     } catch (e) {
@@ -708,6 +817,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       print("QR LOGOUT RESPONSE ======== $response");
       isCheckedIn = false;
       markedTime = TimeOfDay.now().format(Get.context!);
+      await _playSuccessSound();
       _showSuccess("QR Check-Out Successful");
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
@@ -901,7 +1011,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   @override
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
+    _locationTimer?.cancel();
     _safeDisposeCamera();
+    _successPlayer.dispose();
     super.onClose();
   }
 }

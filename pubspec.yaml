@@ -22,6 +22,7 @@ dependencies:
   mobile_scanner: ^7.2.0
   printing: ^5.14.3
   image_picker: ^1.2.1
+  audioplayers: ^6.6.0
  
   
   
@@ -39,6 +40,7 @@ flutter:
 
   assets:
     - assets/
+    - assets/sounds/hrmsattendanceringtone.aac
 
 # ✅ IMPORTANT: flutter ke bahar hona chahiye
 flutter_icons:
