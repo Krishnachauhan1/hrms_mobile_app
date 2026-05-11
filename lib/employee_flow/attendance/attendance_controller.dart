@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:camera/camera.dart';
 import 'package:employee_app/employee_flow/employee_permission_controller.dart';
@@ -13,8 +12,6 @@ import 'package:intl/intl.dart';
 
 class AttendanceRecord {
   final String date;
-  // final String? loginTime;
-  // final String? logoutTime;
   final String loginAt;
   final String? logoutAt;
   final String? totalHours;
@@ -23,8 +20,6 @@ class AttendanceRecord {
 
   AttendanceRecord({
     required this.date,
-    // this.loginTime,
-    // this.logoutTime,
     required this.loginAt,
     this.logoutAt,
     this.totalHours,
@@ -36,7 +31,6 @@ class AttendanceRecord {
     try {
       final loginAt = json['login_at'] as String?;
       if (loginAt == null || loginAt.isEmpty) return null;
-
       final loginRaw =
           json['login_time'] ?? json['login_at'] ?? json['check_in'];
       final logoutRaw =
@@ -218,9 +212,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   void startLocationTracking() {
     _locationTimer?.cancel();
-
     _locationTimer = Timer.periodic(const Duration(minutes: 10), (_) async {
       await fetchCurrentLocation();
+      await sendEmployeeLocation();
     });
   }
 
@@ -438,6 +432,41 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   //     return null;
   //   }
   // }
+  Future<void> sendEmployeeLocation() async {
+    try {
+      if (!isCheckedIn) return;
+
+      if (currentPosition == null) {
+        await fetchCurrentLocation();
+      }
+
+      if (currentPosition == null) {
+        print("Location not available");
+        return;
+      }
+
+      print("LAT => ${currentPosition!.latitude}");
+      print("LNG => ${currentPosition!.longitude}");
+
+      final orgId =
+          int.tryParse(await ApiService.getOrganizationId() ?? '0') ?? 0;
+
+      final response = await ApiService.addEmployeeLocation(
+        organizationId: orgId,
+        employeeId: employeeId ?? 0,
+        latitude: currentPosition!.latitude,
+        longitude: currentPosition!.longitude,
+      );
+
+      print("LOCATION API RESPONSE => $response");
+    } on ApiException catch (e) {
+      print("LOCATION API ERROR => ${e.message}");
+
+      Get.snackbar("Location Error", e.message);
+    } catch (e) {
+      print("UNKNOWN ERROR => $e");
+    }
+  }
 
   Future<Position?> _getLocation() async {
     try {
@@ -513,20 +542,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> startCheckIn() async {
     if (isScanning) return;
-
     errorMessage = null;
-
     _safeUpdate();
-
     await openCameraForScan();
-
     await Future.delayed(const Duration(milliseconds: 800));
-
     await _markLogin();
-
     if (isUserLoggedIn) {
       print("Already logged in");
-
       return;
     }
   }
@@ -542,18 +564,14 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> markFaceCheckIn(String imagePath) async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
     if (!serviceEnabled) {
       _showLocationPopup();
       return;
     }
-
     LocationPermission permission = await Geolocator.checkPermission();
-
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       permission = await Geolocator.requestPermission();
-
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         _showLocationPopup();
@@ -571,18 +589,14 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> markFaceCheckOut(String imagePath) async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
     if (!serviceEnabled) {
       _showLocationPopup();
       return;
     }
-
     LocationPermission permission = await Geolocator.checkPermission();
-
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       permission = await Geolocator.requestPermission();
-
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         _showLocationPopup();
@@ -621,13 +635,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         await _closeCamera();
         return;
       }
-      // if (position.accuracy > 50) {
-      //   errorMessage = "Low GPS accuracy. Move to open area.";
-      //   isScanning = false;
-      //   await _closeCamera();
-      //   _safeUpdate();
-      //   return;
-      // }
 
       final fields = {
         'login_type': extraFields.containsKey('qr_code') ? 'qr' : 'face',

@@ -53,7 +53,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
             const SizedBox(height: 20),
             const Text(
-              "Salary Make",
+              "Quick Salary",
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
