@@ -171,10 +171,7 @@ class ApiService {
   }
 
   // Auth calls
-  static Future<Map<String, dynamic>?> login({
-    required String email,
-    required String password,
-  }) async {
+  static Future<Map<String, dynamic>?> login({required String email, required String password,}) async {
     final url = Uri.parse('${Apis.baseUrl}${Apis.login}');
     final headers = await _buildHeaders(withAuth: false);
     final body = jsonEncode({'email': email, 'password': password});

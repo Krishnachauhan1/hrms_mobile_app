@@ -28,25 +28,26 @@ class AuthController extends GetxController {
   Future<void> login() async {
     final email = loginEmailController.text.trim();
     final password = loginPasswordController.text.trim();
+
     if (email.isEmpty || password.isEmpty) {
       _showError("Fill all fields");
       return;
     }
+
     isLoginLoading = true;
     update();
+
     try {
       final data = await ApiService.login(email: email, password: password);
-      print(data);
+      print('data is =========== $data');
 
       final token = data?["token"];
-      final employee = data?["employee"] ?? data?["user"] ?? data?["data"];
+      final employee = data?["employee"];
+
       if (token != null) {
         await ApiService.saveToken(token);
-        print("TOKEN SAVED === $token");
       }
 
-      final savedToken = await ApiService.getToken();
-      print("AFTER LOGIN TOKEN === $savedToken");
       if (employee != null) {
         await ApiService.saveEmployee(employee);
       }
@@ -57,22 +58,28 @@ class AuthController extends GetxController {
         );
       }
 
+      // ✅ PERMISSION KO SAFE BANAYA
       if (employee != null) {
         final employeeId = employee['id'];
-        print("EMPLOYEE ID SAVED === $employeeId");
         final ctrl = Get.find<EmployeeFeatureController>();
-        await ctrl.loadPermissions(employeeId);
 
-        print(
-          "PERMISSIONS LOADED → salary:${ctrl.canViewSalary} face:${ctrl.canUseFace}",
-        );
+        try {
+          await ctrl.loadPermissions(employeeId);
+          print("PERMISSIONS LOADED ✅");
+        } catch (e) {
+          print("PERMISSION ERROR ❌ === $e");
+          // ❗ ignore karo, login continue rahega
+        }
       }
+
+      // ✅ LOGIN ALWAYS CONTINUE
       final roleId = employee?["role_id"];
       if (roleId == 3) {
         Get.offAllNamed("/home");
       } else {
         Get.offAllNamed(AppRoutes.MAIN_SHELL);
       }
+
     } catch (e) {
       print('login error: $e');
       _showError("Please check your id & password");
@@ -81,11 +88,10 @@ class AuthController extends GetxController {
     isLoginLoading = false;
     update();
   }
-
   Future<void> logout() async {
     await ApiService.clearToken();
     final ctrl = Get.find<EmployeeFeatureController>();
-    ctrl.reset();
+    // ctrl.reset();
 
     token = null;
     employee = null;

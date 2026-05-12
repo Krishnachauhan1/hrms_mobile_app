@@ -28,6 +28,7 @@ class EmployeeFeatureController extends GetxController {
       final res = await ApiService.get(
         '/employee-permissions/employee/$employeeId',
       );
+      print(res);
       final data = res['data'];
       canViewSalary =
           data['can_view_salary'] == 1 ||
