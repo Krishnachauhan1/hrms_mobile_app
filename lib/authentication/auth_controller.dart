@@ -91,7 +91,7 @@ class AuthController extends GetxController {
   Future<void> logout() async {
     await ApiService.clearToken();
     final ctrl = Get.find<EmployeeFeatureController>();
-    ctrl.reset();
+    // ctrl.reset();
 
     token = null;
     employee = null;

@@ -14,7 +14,6 @@ class EmployeeFeatureController extends GetxController {
 
   Future<void> _initPermissions() async {
     final employeeId = await ApiService.getEmployeeId();
-    print('empid is $employeeId');
 
     if (employeeId != null) {
       loadPermissions(employeeId);
@@ -25,18 +24,28 @@ class EmployeeFeatureController extends GetxController {
     isLoading = true;
     update();
 
-    // try {
+    try {
       final res = await ApiService.get(
         '/employee-permissions/employee/$employeeId',
       );
       print(res);
       final data = res['data'];
-      canViewSalary = data['can_view_salary'] == 1;
-      canUseFace = data['can_use_face_recognition'] == 1;
-    // } catch (e) {
-    //   canViewSalary = false;
-    //   canUseFace = false;
-    // }
+      canViewSalary =
+          data['can_view_salary'] == 1 ||
+          data['can_view_salary'] == true ||
+          data['can_view_salary'].toString() == '1';
+
+      canUseFace =
+          data['can_use_face_recognition'] == 1 ||
+          data['can_use_face_recognition'] == true ||
+          data['can_use_face_recognition'].toString() == '1';
+      print("PERMISSION RESPONSE = $res");
+      print("FACE VALUE = ${data['can_use_face_recognition']}");
+      print("SALARY VALUE = ${data['can_view_salary']}");
+    } catch (e) {
+      canViewSalary = false;
+      canUseFace = false;
+    }
 
     isLoading = false;
     update();

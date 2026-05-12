@@ -188,6 +188,23 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> addEmployeeLocation({
+    required int organizationId,
+    required int employeeId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    return await post(
+      '/employee-locations',
+      body: {
+        "organization_id": organizationId,
+        "employee_id": employeeId,
+        "latitude": latitude,
+        "longitude": longitude,
+      },
+    );
+  }
+
   static Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders();
