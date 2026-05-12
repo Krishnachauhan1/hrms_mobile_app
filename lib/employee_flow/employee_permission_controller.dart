@@ -14,6 +14,7 @@ class EmployeeFeatureController extends GetxController {
 
   Future<void> _initPermissions() async {
     final employeeId = await ApiService.getEmployeeId();
+    print('empid is $employeeId');
 
     if (employeeId != null) {
       loadPermissions(employeeId);
@@ -24,17 +25,18 @@ class EmployeeFeatureController extends GetxController {
     isLoading = true;
     update();
 
-    try {
+    // try {
       final res = await ApiService.get(
-        'employee-permissions/employee/$employeeId',
+        '/employee-permissions/employee/$employeeId',
       );
+      print(res);
       final data = res['data'];
       canViewSalary = data['can_view_salary'] == 1;
       canUseFace = data['can_use_face_recognition'] == 1;
-    } catch (e) {
-      canViewSalary = false;
-      canUseFace = false;
-    }
+    // } catch (e) {
+    //   canViewSalary = false;
+    //   canUseFace = false;
+    // }
 
     isLoading = false;
     update();
