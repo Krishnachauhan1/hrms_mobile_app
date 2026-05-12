@@ -1,4 +1,5 @@
 import 'package:employee_app/api_service.dart';
+import 'package:employee_app/employee_flow/device_info_service.dart';
 import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,8 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
+    final deviceData = await DeviceInfoService.getDeviceInfo();
+
     final email = loginEmailController.text.trim();
     final password = loginPasswordController.text.trim();
 
@@ -38,7 +41,12 @@ class AuthController extends GetxController {
     update();
 
     try {
-      final data = await ApiService.login(email: email, password: password);
+      final data = await ApiService.login(
+        email: email,
+        password: password,
+        deviceInfo: deviceData,
+      );
+      print('device info data is =========== $deviceData');
       print('data is =========== $data');
 
       final token = data?["token"];
@@ -58,7 +66,6 @@ class AuthController extends GetxController {
         );
       }
 
-      // ✅ PERMISSION KO SAFE BANAYA
       if (employee != null) {
         final employeeId = employee['id'];
         final ctrl = Get.find<EmployeeFeatureController>();
@@ -68,18 +75,16 @@ class AuthController extends GetxController {
           print("PERMISSIONS LOADED ✅");
         } catch (e) {
           print("PERMISSION ERROR ❌ === $e");
-          // ❗ ignore karo, login continue rahega
         }
       }
 
-      // ✅ LOGIN ALWAYS CONTINUE
       final roleId = employee?["role_id"];
+
       if (roleId == 3) {
         Get.offAllNamed("/home");
       } else {
         Get.offAllNamed(AppRoutes.MAIN_SHELL);
       }
-
     } catch (e) {
       print('login error: $e');
       _showError("Please check your id & password");
@@ -88,6 +93,7 @@ class AuthController extends GetxController {
     isLoginLoading = false;
     update();
   }
+
   Future<void> logout() async {
     await ApiService.clearToken();
     final ctrl = Get.find<EmployeeFeatureController>();
