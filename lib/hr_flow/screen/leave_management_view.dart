@@ -12,7 +12,7 @@ class LeaveManagementView extends GetView<LeaveManagementController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F6),
-      // appBar: _buildAppBar(),
+      appBar: _buildAppBar(),
       body: Column(
         children: [
           _StatsRow(controller: controller),
@@ -35,6 +35,8 @@ class LeaveManagementView extends GetView<LeaveManagementController> {
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       elevation: 0,
+      titleSpacing: 0,
+      leadingWidth: 12,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       bottom: PreferredSize(
@@ -53,22 +55,24 @@ class LeaveManagementView extends GetView<LeaveManagementController> {
                 ),
               )
             : Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'Leave Requests',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF0F172A),
-                    ),
+                    // style: TextStyle(
+                    //   fontSize: 18,
+                    //   fontWeight: FontWeight.w500,
+                    //   color: Color(0xFF0F172A),
+                    // ),
                   ),
                   const SizedBox(width: 8),
                   GetBuilder<LeaveManagementController>(
                     builder: (c) => c.pendingCount > 0
                         ? Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                              horizontal: 16,
+                              vertical: 18,
                             ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEDE9FE),
@@ -179,7 +183,7 @@ class _StatsRow extends StatelessWidget {
     return GetBuilder<LeaveManagementController>(
       builder: (controller) => Container(
         color: Colors.white,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         child: Row(
           children: [
             _StatCard(
@@ -226,7 +230,7 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(12),

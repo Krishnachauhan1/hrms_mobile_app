@@ -1,4 +1,5 @@
 import 'package:employee_app/app_color.dart';
+import 'package:employee_app/authentication/login_screen.dart';
 import 'package:employee_app/hr_flow/controller/main_shell_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -167,10 +168,116 @@ class _Header extends StatelessWidget {
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.business_center_rounded,
-              color: Colors.white,
-              size: 28,
+            child: GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+
+                  builder: (context) {
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 5,
+
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          const CircleAvatar(
+                            radius: 28,
+
+                            child: Icon(Icons.logout, size: 30),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          const Text(
+                            "Logout",
+
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          const Text(
+                            "Are you sure you want to logout?",
+                            textAlign: TextAlign.center,
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+
+                                  child: const Text("Cancel"),
+                                ),
+                              ),
+
+                              const SizedBox(width: 10),
+
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    Navigator.pop(context);
+
+                                    // logout code
+                                    // await ApiService.clearToken();
+
+                                    Get.to(() => LoginPage());
+                                  },
+
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                  ),
+
+                                  child: const Text(
+                                    "Logout",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+
+              child: const Icon(
+                Icons.business_center_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
           ),
         ],

@@ -9,7 +9,6 @@ class DeviceInfoService {
     try {
       if (Platform.isAndroid) {
         AndroidDeviceInfo androidInfo = await _deviceInfo.androidInfo;
-
         return {
           "deviceType": "android",
           "brand": androidInfo.brand,
