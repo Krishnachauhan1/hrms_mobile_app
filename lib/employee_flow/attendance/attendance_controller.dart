@@ -769,7 +769,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       }
       final position = await _getLocation();
       if (position == null) return;
-
       final response = await ApiService.post(
         Apis.employeeloginbyQR,
         body: {

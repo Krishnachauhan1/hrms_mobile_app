@@ -1,4 +1,5 @@
 import 'package:employee_app/employee_flow/attendance/attendance_screen.dart';
+import 'package:employee_app/employee_flow/breaks/break_time_screen.dart';
 import 'package:employee_app/employee_flow/dashboard/dashboardscreen.dart';
 import 'package:employee_app/employee_flow/leaves/leavescreen.dart';
 import 'package:employee_app/employee_flow/salary/salaryscreen.dart';
@@ -17,6 +18,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = [
     const DashboardPage(),
     const AttendancePage(),
+    const BreakTimeScreen(),
     const LeavePage(),
     const SalaryPage(),
   ];
@@ -44,9 +46,10 @@ class _HomePageState extends State<HomePage> {
               children: [
                 _buildNavItem(0, Icons.dashboard_rounded, 'Home'),
                 _buildNavItem(1, Icons.fingerprint_rounded, 'Attendance'),
-                _buildNavItem(2, Icons.calendar_today_rounded, 'Leave'),
+                _buildNavItem(2, Icons.free_breakfast_outlined, 'Break'),
+                _buildNavItem(3, Icons.calendar_today_rounded, 'Leave'),
                 _buildNavItem(
-                  3,
+                  4,
                   Icons.account_balance_wallet_rounded,
                   'Salary',
                 ),

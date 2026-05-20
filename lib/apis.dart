@@ -33,4 +33,10 @@ class Apis {
       '/organization/$organizationsId/employees';
   static String employeeloginbyQR = '/attendance/qr-login';
   static String employeelogoutbyQR = '/attendance/qr-logout';
+
+  // Breaks
+  static const String breakTypes = '/break-types';
+  static const String breaksStart = '/breaks/start';
+  static const String breaksEnd = '/breaks/end';
+  static const String breaksToday = '/breaks/today';
 }
