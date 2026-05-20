@@ -354,8 +354,8 @@ class ApiService {
 
   //  error handler
   static Map<String, dynamic>? _handleResponse(http.Response response) {
-    print("STATUS: ${response.statusCode}");
-    print("BODY: ${response.body}");
+    // print("STATUS: ${response.statusCode}");
+    // print("BODY: ${response.body}");
 
     if (response.body.isEmpty) {
       throw ApiException(
