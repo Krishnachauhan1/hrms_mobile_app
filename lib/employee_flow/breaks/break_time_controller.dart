@@ -102,7 +102,8 @@ class BreakTimeController extends GetxController {
       } else if (checkedOutStatuses.contains(status)) {
         isCheckedIn = false;
       } else {
-        isCheckedIn = data['is_checked_in'] == true ||
+        isCheckedIn =
+            data['is_checked_in'] == true ||
             data['checked_in'] == true ||
             data['is_logged_in'] == true ||
             (data['login_at'] != null &&
@@ -133,7 +134,8 @@ class BreakTimeController extends GetxController {
       final map = Map<String, dynamic>.from(today);
       loginAt = map['login_at']?.toString();
       logoutAt = map['logout_at']?.toString();
-      isCheckedIn = loginAt != null &&
+      isCheckedIn =
+          loginAt != null &&
           loginAt!.isNotEmpty &&
           (logoutAt == null || logoutAt!.isEmpty);
     } catch (e) {
@@ -176,10 +178,9 @@ class BreakTimeController extends GetxController {
       Map<String, dynamic>? mine;
       for (final item in list) {
         final map = Map<String, dynamic>.from(item);
-        final empId = map['employee_id'] ??
-            (map['employee'] is Map
-                ? map['employee']['id']
-                : null);
+        final empId =
+            map['employee_id'] ??
+            (map['employee'] is Map ? map['employee']['id'] : null);
         if (id != null && empId != null && empId.toString() != id.toString()) {
           continue;
         }
@@ -192,14 +193,16 @@ class BreakTimeController extends GetxController {
       final end = mine['break_end'] ?? mine['ended_at'];
       final status = mine['break_status']?.toString().toLowerCase();
 
-      isOnBreak = status == 'on_break' ||
+      isOnBreak =
+          status == 'on_break' ||
           status == 'active' ||
           (start != null &&
               start.toString().isNotEmpty &&
               (end == null || end.toString().isEmpty));
 
       breakStartAt = start?.toString();
-      activeBreakTypeName = mine['break_type_name']?.toString() ??
+      activeBreakTypeName =
+          mine['break_type_name']?.toString() ??
           (mine['organization_break_type'] is Map
               ? mine['organization_break_type']['name']?.toString()
               : null);
@@ -285,9 +288,7 @@ class BreakTimeController extends GetxController {
         _showError('You are already checked in.');
         await loadAll();
       } else if (msg.contains('login type') || msg.contains('login_type')) {
-        _showError(
-          'Use Attendance tab for face/QR check-in, or contact HR.',
-        );
+        _showError('Use Attendance tab for face/QR check-in, or contact HR.');
       } else {
         _showError(e.message);
       }
