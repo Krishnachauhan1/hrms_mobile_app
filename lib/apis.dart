@@ -33,4 +33,5 @@ class Apis {
       '/organization/$organizationsId/employees';
   static String employeeloginbyQR = '/attendance/qr-login';
   static String employeelogoutbyQR = '/attendance/qr-logout';
+  static const String uploadProfileImage = '/upload-profile-image';
 }

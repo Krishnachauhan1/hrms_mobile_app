@@ -751,8 +751,8 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
   Future<void> uploadProfileImage(String path) async {
     await ApiService.postMultipart(
-      '/api/upload-profile-image',
-      fields: {},
+      Apis.uploadProfileImage,
+      fields: const {},
       filePath: path,
       fileField: 'profile_image',
     );

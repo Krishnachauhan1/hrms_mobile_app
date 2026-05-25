@@ -55,9 +55,7 @@ class ProfileBottomSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          // if(controller.uploadImage)
-          _uploadButton(),
-
+          _uploadSection(),
 
           const SizedBox(height: 22),
           Divider(color: Colors.grey.shade200, thickness: 1),
@@ -119,31 +117,81 @@ class ProfileBottomSheet extends StatelessWidget {
     );
   }
 
-  // ───────── UPLOAD BUTTON ─────────
-  Widget _uploadButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 46,
-      child: OutlinedButton.icon(
-        icon: const Icon(Icons.camera_alt_rounded, size: 18),
-        label: const Text(
-          "Upload Profile Image",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        onPressed: () async {
-          final File? file = await controller.pickImageFromCamera();
-          if (file != null) {
-            await controller.uploadProfileImage(file);
-          }
-        },
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF6C5CE7),
-          side: const BorderSide(color: Color(0xFF6C5CE7)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
+  // ───────── UPLOAD + PROGRESS ─────────
+  Widget _uploadSection() {
+    return GetBuilder<DashboardController>(
+      builder: (ctrl) {
+        return Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: OutlinedButton.icon(
+                icon: ctrl.isUploadingProfileImage
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF6C5CE7),
+                        ),
+                      )
+                    : const Icon(Icons.camera_alt_rounded, size: 18),
+                label: Text(
+                  ctrl.isUploadingProfileImage
+                      ? 'Processing...'
+                      : 'Upload Profile Image',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                onPressed: ctrl.isUploadingProfileImage
+                    ? null
+                    : () async {
+                        final File? file = await ctrl.pickImageFromCamera();
+                        if (file != null) {
+                          await ctrl.uploadProfileImage(file);
+                        }
+                      },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF6C5CE7),
+                  side: const BorderSide(color: Color(0xFF6C5CE7)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            if (ctrl.isUploadingProfileImage) ...[
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: ctrl.uploadProgress.clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFE8E4FF),
+                  color: const Color(0xFF6C5CE7),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                ctrl.uploadStatusMessage,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF636E72),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${(ctrl.uploadProgress.clamp(0.0, 1.0) * 100).round()}%',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF8A8FA3),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
