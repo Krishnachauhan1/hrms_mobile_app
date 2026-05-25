@@ -540,75 +540,122 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> startCheckIn() async {
-    if (isScanning) return;
-    errorMessage = null;
-    _safeUpdate();
-    await openCameraForScan();
-    await Future.delayed(const Duration(milliseconds: 800));
-    await _markLogin();
-    if (isUserLoggedIn) {
-      print("Already logged in");
-      return;
+  // Face punch must go through the camera sheet (_FaceScanSheet -> markFaceCheckIn/Out).
+  // Do not auto-call login/logout without a captured photo.
+
+  /// Returns null on success, or a user-facing error message for the face sheet.
+  Future<String?> markFaceCheckIn(String imagePath) async {
+    final prepError = await _prepareFaceAttendance();
+    if (prepError != null) return prepError;
+
+    try {
+      await _markLogin(imagePath: imagePath, suppressErrorUi: true);
+      return null;
+    } on ApiException catch (e) {
+      isScanning = false;
+      final message = faceAttendanceErrorMessage(e);
+      errorMessage = message;
+      _safeUpdate();
+      return message;
+    } catch (_) {
+      isScanning = false;
+      const message = 'Check-in failed. Please try again.';
+      errorMessage = message;
+      _safeUpdate();
+      return message;
     }
   }
 
-  Future<void> startCheckOut() async {
-    if (isScanning) return;
-    errorMessage = null;
-    _safeUpdate();
-    await openCameraForScan();
-    await Future.delayed(const Duration(milliseconds: 800));
-    await _markLogout();
+  /// Returns null on success, or a user-facing error message for the face sheet.
+  Future<String?> markFaceCheckOut(String imagePath) async {
+    final prepError = await _prepareFaceAttendance();
+    if (prepError != null) return prepError;
+
+    try {
+      await _markLogout(imagePath: imagePath, suppressErrorUi: true);
+      return null;
+    } on ApiException catch (e) {
+      isScanning = false;
+      final message = faceAttendanceErrorMessage(e);
+      errorMessage = message;
+      _safeUpdate();
+      return message;
+    } catch (_) {
+      isScanning = false;
+      const message = 'Check-out failed. Please try again.';
+      errorMessage = message;
+      _safeUpdate();
+      return message;
+    }
   }
 
-  Future<void> markFaceCheckIn(String imagePath) async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  Future<String?> _prepareFaceAttendance() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _showLocationPopup();
-      return;
+      return 'Location is turned off. Please enable GPS and try again.';
     }
-    LocationPermission permission = await Geolocator.checkPermission();
+
+    var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        _showLocationPopup();
-        return;
-      }
     }
-    // final employeeId = await ApiService.getEmployeeId();
-    final featureCtrl = Get.find<EmployeeFeatureController>();
-    if (!featureCtrl.canUseFace) {
-      _showError("Face recognition access denied");
-      return;
-    }
-    await _markLogin(imagePath: imagePath);
-  }
-
-  Future<void> markFaceCheckOut(String imagePath) async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _showLocationPopup();
-      return;
-    }
-    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        _showLocationPopup();
-        return;
-      }
+      return 'Location permission is required for attendance. Enable it in settings.';
     }
+
     final featureCtrl = Get.find<EmployeeFeatureController>();
     if (!featureCtrl.canUseFace) {
-      _showError("Face recognition access denied");
-      return;
+      return 'Face recognition is not enabled for your account. Contact admin.';
     }
-    await _markLogout(imagePath: imagePath);
+
+    return null;
+  }
+
+  String faceAttendanceErrorMessage(ApiException e) {
+    final msg = e.message.toLowerCase();
+
+    if (msg.contains('no face detected') ||
+        msg.contains('face not clear') ||
+        msg.contains('face not detected')) {
+      return 'Face not detected in photo.\n\n'
+          '• Look straight at the front camera\n'
+          '• Use bright, even lighting\n'
+          '• Remove mask or sunglasses\n'
+          '• Keep your face inside the frame\n'
+          '• Then tap Try Again';
+    }
+
+    if (msg.contains('does not match') || msg.contains('invalid face')) {
+      return 'This face does not match your registered profile photo.\n\n'
+          'Use your own face, or update your profile photo from the dashboard.';
+    }
+
+    if (msg.contains('profile image not uploaded') ||
+        msg.contains('face profile')) {
+      return 'Profile photo is not registered.\n\n'
+          'Open Dashboard → upload your profile photo first, then try again.';
+    }
+
+    if (msg.contains('face service') ||
+        msg.contains('unavailable') ||
+        msg.contains('timed out') ||
+        e.statusCode == 503 ||
+        e.statusCode == 408) {
+      return 'Face service is busy or unavailable.\n\n'
+          'Wait a few seconds and tap Try Again.';
+    }
+
+    if (msg.contains('already checked in') || msg.contains('logout first')) {
+      return 'You are already checked in. Use Check-Out to punch out.';
+    }
+
+    if (msg.contains('no active login')) {
+      return 'You are not checked in yet. Use Check-In first.';
+    }
+
+    return e.message;
   }
 
   Future<void> _playSuccessSound() async {
@@ -625,6 +672,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   Future<void> _markLogin({
     String? imagePath,
     Map<String, String> extraFields = const {},
+    bool suppressErrorUi = false,
   }) async {
     isScanning = true;
     _safeUpdate();
@@ -633,6 +681,12 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       if (position == null) {
         isScanning = false;
         await _closeCamera();
+        final locMsg =
+            errorMessage ?? 'Could not get your location. Please try again.';
+        if (suppressErrorUi) {
+          throw ApiException(statusCode: 400, message: locMsg);
+        }
+        _showError(locMsg);
         return;
       }
 
@@ -650,6 +704,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         fields: fields,
         filePath: imagePath ?? '',
         fileField: 'image',
+        timeout: const Duration(seconds: 180),
       );
       print('user attendance postion of ===$response');
       attendanceResult = response as Map<String, dynamic>;
@@ -671,6 +726,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     } on ApiException catch (e) {
       isScanning = false;
       await _closeCamera();
+      if (suppressErrorUi) {
+        rethrow;
+      }
       if (e.statusCode == 400 && e.message.toLowerCase().contains('logout')) {
         isCheckedIn = true;
         _safeUpdate();
@@ -683,6 +741,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     } catch (e) {
       isScanning = false;
       await _closeCamera();
+      if (suppressErrorUi) {
+        rethrow;
+      }
       errorMessage = 'Check-in failed. Try again.';
       _safeUpdate();
       _showError(errorMessage!);
@@ -694,6 +755,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   Future<void> _markLogout({
     String? imagePath,
     Map<String, String> extraFields = const {},
+    bool suppressErrorUi = false,
   }) async {
     isScanning = true;
     _safeUpdate();
@@ -702,6 +764,12 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       if (position == null) {
         isScanning = false;
         await _closeCamera();
+        final locMsg =
+            errorMessage ?? 'Could not get your location. Please try again.';
+        if (suppressErrorUi) {
+          throw ApiException(statusCode: 400, message: locMsg);
+        }
+        _showError(locMsg);
         return;
       }
 
@@ -716,6 +784,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         fields: fields,
         filePath: imagePath ?? '',
         fileField: 'image',
+        timeout: const Duration(seconds: 180),
       );
 
       isCheckedIn = false;
@@ -733,16 +802,20 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isRecognized = false;
       _safeUpdate();
     } on ApiException catch (e) {
-      print("the logot user error is ====$e");
       isScanning = false;
       await _closeCamera();
+      if (suppressErrorUi) {
+        rethrow;
+      }
       errorMessage = e.message;
       _safeUpdate();
       _showError(e.message);
     } catch (e) {
-      print("the logot user error message is ====$e");
       isScanning = false;
       await _closeCamera();
+      if (suppressErrorUi) {
+        rethrow;
+      }
       errorMessage = 'Check-out failed. Try again.';
       _safeUpdate();
       _showError(errorMessage!);
