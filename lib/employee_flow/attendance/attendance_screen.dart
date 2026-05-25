@@ -204,6 +204,7 @@ class AttendancePage extends StatelessWidget {
     if (controller.isRecognized) return const SizedBox.shrink();
 
     final isIn = controller.isCheckedIn;
+    print(isIn);
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(

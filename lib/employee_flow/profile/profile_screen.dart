@@ -6,10 +6,7 @@ import 'package:get/get.dart';
 class ProfileBottomSheet extends StatelessWidget {
   final DashboardController controller;
 
-  const ProfileBottomSheet({
-    super.key,
-    required this.controller,
-  });
+  const ProfileBottomSheet({super.key, required this.controller});
 
   static void show(BuildContext context, DashboardController controller) {
     showModalBottomSheet(
@@ -40,8 +37,6 @@ class ProfileBottomSheet extends StatelessWidget {
 
           _avatar(),
           const SizedBox(height: 12),
-
-
 
           _name(),
           const SizedBox(height: 4),
@@ -183,10 +178,7 @@ class ProfileBottomSheet extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 '${(ctrl.uploadProgress.clamp(0.0, 1.0) * 100).round()}%',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF8A8FA3),
-                ),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF8A8FA3)),
               ),
             ],
           ],
@@ -198,9 +190,7 @@ class ProfileBottomSheet extends StatelessWidget {
   // ───────── NAME ─────────
   Widget _name() {
     return Text(
-      controller.employeeName.isEmpty
-          ? 'Employee'
-          : controller.employeeName,
+      controller.employeeName.isEmpty ? 'Employee' : controller.employeeName,
       style: const TextStyle(
         fontSize: 19,
         fontWeight: FontWeight.w700,
@@ -220,18 +210,18 @@ class ProfileBottomSheet extends StatelessWidget {
             onPressed: ctrl.isLoggingOut
                 ? null
                 : () {
-              Navigator.pop(context);
-              ctrl.logout();
-            },
+                    Navigator.pop(context);
+                    ctrl.logout();
+                  },
             icon: ctrl.isLoggingOut
                 ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            )
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
                 : const Icon(Icons.logout_rounded),
             label: Text(
               ctrl.isLoggingOut ? 'Logging out...' : 'Logout',

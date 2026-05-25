@@ -104,6 +104,7 @@ class LeaveController extends GetxController {
 
     try {
       final dynamic response = await ApiService.get(Apis.leaveTypes);
+      print("leave type is ${Apis.leaveTypes}");
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
@@ -156,6 +157,9 @@ class LeaveController extends GetxController {
 
     try {
       final dynamic response = await ApiService.get(Apis.leaveApplications);
+      print("leave application ${Apis.leaveApplications}");
+      print("Full API response: $response");
+      print("Response type: ${response.runtimeType}");
       List<dynamic> rawList = [];
       if (response is List) {
         rawList = response;
@@ -243,51 +247,84 @@ class LeaveController extends GetxController {
 
   // API leave-applications
   Future<void> submitLeave() async {
+    // Validation
     if (selectedType == null) {
       _showError('Please select a leave type');
       return;
     }
+
     final reason = reasonController.text.trim();
 
     if (reason.isEmpty) {
       _showError('Please enter a reason');
       return;
     }
+
     if (endDate.isBefore(startDate)) {
       _showError('End date cannot be before start date');
       return;
     }
 
+    // Request body
     final Map<String, dynamic> body = {
       'leave_type_id': selectedType!.id,
       'from_date': _formatDate(startDate),
       'to_date': _formatDate(endDate),
       'reason': reason,
     };
+
     isSubmitting = true;
     _safeUpdate();
 
     try {
-      final dynamic response = await ApiService.post(
+      print("========== LEAVE SUBMIT ==========");
+      print("API => ${Apis.leaveApplications}");
+      print("Selected Type => ${selectedType?.name}");
+      print("Selected Type ID => ${selectedType?.id}");
+      print("Start Date => ${_formatDate(startDate)}");
+      print("End Date => ${_formatDate(endDate)}");
+      print("Reason => $reason");
+      print("Request Body => $body");
+
+      // API CALL
+      final response = await ApiService.post(
         Apis.leaveApplications,
         body: body,
-        isAuth: true
+        isAuth: true,
       );
-      // Reset form
+
+      print("SUCCESS RESPONSE => $response");
+      print("Response Type => ${response.runtimeType}");
+
+      // Reset form after success
       reasonController.clear();
       startDate = DateTime.now();
       endDate = DateTime.now();
+
       isSubmitting = false;
       _safeUpdate();
+
       _showSuccess('Leave application submitted!');
+
+      // Refresh leave history + balance
       await fetchLeaveHistory();
     } on ApiException catch (e) {
+      print("========== API ERROR ==========");
+      print("Error => ${e.message}");
+      print("Request Body => $body");
+
       isSubmitting = false;
       _safeUpdate();
+
       _showError(e.message);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print("========== UNKNOWN ERROR ==========");
+      print("Error => $e");
+      print("Stack => $stackTrace");
+
       isSubmitting = false;
       _safeUpdate();
+
       _showError('Network error. Check your connection.');
     }
   }

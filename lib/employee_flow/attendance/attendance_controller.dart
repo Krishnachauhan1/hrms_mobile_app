@@ -842,7 +842,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       }
       final position = await _getLocation();
       if (position == null) return;
-
       final response = await ApiService.post(
         Apis.employeeloginbyQR,
         body: {
@@ -989,6 +988,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
             ? response['data'] as Map<String, dynamic>
             : response;
       }
+      print('=========today attendance res $todayRecord');
     } catch (e) {
       debugPrint('Today attendance error: $e');
     } finally {
@@ -1020,9 +1020,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
           .map((e) => AttendanceRecord.tryFromJson(e))
           .whereType<AttendanceRecord>()
           .toList();
-      print("Current Employee ID: $employeeId");
-      print("Latest record employee: ${historyList.first.loginAt}");
-      print("Latest logout: ${historyList.first.logoutAt}");
+      // print("Current Employee ID: $employeeId");
+      // print("Latest record employee: ${historyList.first.loginAt}");
+      // print("Latest logout: ${historyList.first.logoutAt}");
       historyList.sort((a, b) {
         try {
           return DateTime.parse(b.loginAt).compareTo(DateTime.parse(a.loginAt));

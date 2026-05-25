@@ -1,4 +1,5 @@
 import 'package:employee_app/employee_flow/attendance/attendance_screen.dart';
+import 'package:employee_app/employee_flow/breaks/break_time_screen.dart';
 import 'package:employee_app/employee_flow/leaves/leavescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -276,15 +277,16 @@ class DashboardPage extends StatelessWidget {
 
   // QUICK ACTIONS
   Widget _buildQuickActions(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildActionButton(
-            icon: Icons.fingerprint_rounded,
-            label: 'Mark Attendance',
-            color: const Color(0xFF00B894),
-            onTap: () =>
-                Navigator.push(
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
+                icon: Icons.fingerprint_rounded,
+                label: 'Mark Attendance',
+                color: const Color(0xFF00B894),
+                onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AttendancePage()),
                 ).then((value) {
@@ -293,19 +295,37 @@ class DashboardPage extends StatelessWidget {
                     controller.fetchTotalAttendance();
                   }
                 }),
-          ),
-        ),
-        const SizedBox(width: 15),
-        Expanded(
-          child: _buildActionButton(
-            icon: Icons.event_note_rounded,
-            label: 'Apply Leave',
-            color: const Color(0xFFFF7675),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LeavePage()),
+              ),
             ),
-          ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: _buildActionButton(
+                icon: Icons.free_breakfast_outlined,
+                label: 'Break Time',
+                color: const Color(0xFF6C5CE7),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BreakTimeScreen()),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 15),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
+                icon: Icons.event_note_rounded,
+                label: 'Apply Leave',
+                color: const Color(0xFFFF7675),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LeavePage()),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

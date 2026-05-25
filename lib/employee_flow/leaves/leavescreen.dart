@@ -329,7 +329,7 @@ class LeavePage extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                '${controller.startDate.day}/${controller.startDate.month}/${controller.startDate.year}',
+                                '${controller.endDate.day}/${controller.endDate.month}/${controller.endDate.year}',
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
