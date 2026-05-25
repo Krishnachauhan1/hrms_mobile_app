@@ -648,12 +648,18 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
         setState(() {});
       }
       await tempCam?.dispose();
-      if (widget.controller.isCheckedIn) {
-        await widget.controller.markFaceCheckOut(photo.path);
-      } else {
-        await widget.controller.markFaceCheckIn(photo.path);
-      }
+
+      final String? failureMessage = widget.controller.isCheckedIn
+          ? await widget.controller.markFaceCheckOut(photo.path)
+          : await widget.controller.markFaceCheckIn(photo.path);
+
       if (!mounted) return;
+
+      if (failureMessage != null) {
+        _setError(failureMessage);
+        return;
+      }
+
       setState(() {
         _processing = false;
         _success = true;
@@ -663,7 +669,7 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
         Navigator.pop(context);
       }
     } catch (e) {
-      _setError('Scan failed. Please try again.');
+      _setError('Something went wrong. Please try again.');
     }
   }
 
@@ -779,41 +785,79 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
                 if (_error != null)
                   Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 32,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: Color(0xFFFF7675),
-                            size: 56,
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF7675).withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.face_retouching_off_rounded,
+                              color: Color(0xFFFF7675),
+                              size: 48,
+                            ),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _error!,
-                            style: const TextStyle(
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Attendance not marked',
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _error = null;
-                                _started = false;
-                                _cameraReady = false;
-                              });
-                              _initAndScan();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6C5CE7),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                          const SizedBox(height: 12),
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight:
+                                  MediaQuery.of(context).size.height * 0.28,
+                            ),
+                            child: SingleChildScrollView(
+                              child: Text(
+                                _error!,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                  height: 1.45,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                            child: const Text('Try Again'),
+                          ),
+                          const SizedBox(height: 28),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  _error = null;
+                                  _started = false;
+                                  _cameraReady = false;
+                                  _processing = false;
+                                });
+                                _initAndScan();
+                              },
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Try Again'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF6C5CE7),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
