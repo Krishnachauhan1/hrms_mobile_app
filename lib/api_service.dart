@@ -178,7 +178,23 @@ class ApiService {
   }) async {
     final url = Uri.parse('${Apis.baseUrl}${Apis.login}');
     final headers = await _buildHeaders(withAuth: false);
-    final body = jsonEncode({'email': email, 'password': password});
+
+    final deviceId = deviceInfo['deviceId']?.toString() ??
+        deviceInfo['identifierForVendor']?.toString();
+
+    if (deviceId == null || deviceId.isEmpty) {
+      throw ApiException(
+        statusCode: 400,
+        message: 'Unable to identify this device. Please restart the app and try again.',
+        errorCode: 'device_id_missing',
+      );
+    }
+
+    final body = jsonEncode({
+      'email': email,
+      'password': password,
+      'device_id': deviceId,
+    });
     try {
       final response = await http
           .post(url, headers: headers, body: body)
@@ -322,7 +338,9 @@ class ApiService {
     required Map<String, String> fields,
     String? filePath,
     String fileField = 'photo',
+    Duration? timeout,
   }) async {
+    final requestTimeout = timeout ?? _requestTimeout;
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final token = await getToken();
     if (filePath != null) {
@@ -338,7 +356,7 @@ class ApiService {
             await http.MultipartFile.fromPath(fileField, filePath),
           );
         }
-        final streamed = await request.send().timeout(_requestTimeout);
+        final streamed = await request.send().timeout(requestTimeout);
         final response = await http.Response.fromStream(streamed);
         return _handleResponse(response);
       } on TimeoutException {
@@ -377,6 +395,15 @@ class ApiService {
       );
     }
 
+    if (response.statusCode == 403) {
+      throw ApiException(
+        statusCode: 403,
+        message: decoded['message']?.toString() ?? 'Access denied.',
+        errorCode: decoded['error_code']?.toString(),
+        registeredTo: decoded['registered_to']?.toString(),
+      );
+    }
+
     if (response.statusCode == 422) {
       final errors = decoded['errors'] as Map<String, dynamic>?;
       final firstError = errors?.values.first;
@@ -401,7 +428,20 @@ class ApiService {
 class ApiException implements Exception {
   final int statusCode;
   final String message;
-  ApiException({required this.statusCode, required this.message});
+  final String? errorCode;
+  final String? registeredTo;
+
+  ApiException({
+    required this.statusCode,
+    required this.message,
+    this.errorCode,
+    this.registeredTo,
+  });
+
+  bool get isDeviceAlreadyInUse => errorCode == 'device_already_in_use';
+
+  bool get isDeviceMismatch => errorCode == 'device_mismatch';
+
   @override
   String toString() => 'ApiException($statusCode): $message';
 }

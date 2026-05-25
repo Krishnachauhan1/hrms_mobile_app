@@ -33,7 +33,7 @@ class AuthController extends GetxController {
     final password = loginPasswordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      _showError("Fill all fields");
+      _showError('Login failed', 'Please enter email and password.');
       return;
     }
 
@@ -85,9 +85,11 @@ class AuthController extends GetxController {
       } else {
         Get.offAllNamed(AppRoutes.MAIN_SHELL);
       }
+    } on ApiException catch (e) {
+      _showLoginError(e);
     } catch (e) {
       print('login error: $e');
-      _showError("Please check your id & password");
+      _showError('Login failed', 'Please check your email and password.');
     }
 
     isLoginLoading = false;
@@ -108,15 +110,36 @@ class AuthController extends GetxController {
     Get.offAllNamed('/login');
   }
 
-  void _showError(String message) {
+  void _showLoginError(ApiException e) {
+    if (e.isDeviceAlreadyInUse) {
+      _showError('This phone is already linked to another employee.', '');
+      return;
+    }
+
+    if (e.isDeviceMismatch) {
+      _showError('Please login from your registered device only.', '');
+      return;
+    }
+
+    if (e.statusCode == 401) {
+      _showError('Login failed', 'Invalid email or password.');
+      return;
+    }
+
+    _showError('Login failed', e.message);
+  }
+
+  void _showError(String title, String message) {
     Get.snackbar(
-      'Error',
+      title,
       message,
       backgroundColor: const Color(0xFFFF7675),
       colorText: Colors.white,
       snackPosition: SnackPosition.TOP,
       borderRadius: 12,
       margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 5),
+      messageText: message.isEmpty ? const SizedBox.shrink() : null,
     );
   }
 

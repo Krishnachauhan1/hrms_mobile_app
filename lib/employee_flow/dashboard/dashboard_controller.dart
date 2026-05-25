@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
@@ -5,11 +6,14 @@ import 'package:get/get.dart';
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/apis.dart';
 import 'package:employee_app/authentication/auth_controller.dart';
-import 'package:http/http.dart' as http;
 
 class DashboardController extends GetxController {
   String employeeName = '';
   bool uploadImage = true;
+  bool isUploadingProfileImage = false;
+  double uploadProgress = 0;
+  String uploadStatusMessage = '';
+  Timer? _uploadProgressTimer;
   String employeeInitials = '';
   String employeeRole = '';
   bool isLoadingProfile = false;
@@ -59,9 +63,7 @@ class DashboardController extends GetxController {
       final authController = Get.find<AuthController>();
       employeeName = authController.employee?['name']?.toString() ?? 'Employee';
       // print('emplyee data ${authController.employee?['face_embedding']}');
-      uploadImage = authController.employee?['face_embedding'] == null
-          ? true
-          : false;
+      uploadImage = !_hasFaceRegistered(authController.employee);
       employeeInitials = _generateInitials(employeeName);
       employeeRole =
           authController.employee?['role']?.toString() ??
@@ -483,50 +485,126 @@ class DashboardController extends GetxController {
     }
   }
 
-  Future<void> uploadProfileImage(File imageFile) async {
-    try {
-      final token = await ApiService.getToken();
+  bool _hasFaceRegistered(Map<String, dynamic>? employee) {
+    if (employee == null) return false;
+    final registered = employee['has_face_registered'];
+    return registered == true ||
+        registered == 1 ||
+        registered.toString() == '1' ||
+        registered.toString() == 'true';
+  }
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://quicksalary.org/api/upload-profile-image'),
-      );
+  void _startUploadProgress() {
+    _uploadProgressTimer?.cancel();
+    isUploadingProfileImage = true;
+    uploadProgress = 0.05;
+    uploadStatusMessage = 'Uploading photo...';
+    _safeUpdate();
 
-      request.headers.addAll({
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      });
-
-      request.files.add(
-        await http.MultipartFile.fromPath('profile_image', imageFile.path),
-      );
-
-      var response = await request.send();
-      final responseBody = await response.stream.bytesToString();
-
-      print('Status: ${response.statusCode}');
-      print('Response: $responseBody');
-      if (response.statusCode == 200) {
-        Get.snackbar(
-          "Success",
-          "Image uploaded successfully",
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+    _uploadProgressTimer = Timer.periodic(const Duration(milliseconds: 600), (_) {
+      if (!isUploadingProfileImage) return;
+      if (uploadProgress < 0.25) {
+        uploadStatusMessage = 'Uploading photo...';
+      } else if (uploadProgress < 0.55) {
+        uploadStatusMessage = 'Analyzing face...';
+      } else if (uploadProgress < 0.85) {
+        uploadStatusMessage = 'Generating face profile...';
       } else {
-        Get.snackbar(
-          "Error",
-          "Unable to upload image. Please try again.",
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        uploadStatusMessage = 'Almost done...';
       }
-    } catch (e) {
+      if (uploadProgress < 0.92) {
+        uploadProgress += 0.04;
+        _safeUpdate();
+      }
+    });
+  }
+
+  void _finishUploadProgress({required bool success}) {
+    _uploadProgressTimer?.cancel();
+    uploadProgress = success ? 1.0 : 0;
+    uploadStatusMessage = success ? 'Face profile saved' : '';
+    _safeUpdate();
+  }
+
+  void _resetUploadProgress() {
+    _uploadProgressTimer?.cancel();
+    isUploadingProfileImage = false;
+    uploadProgress = 0;
+    uploadStatusMessage = '';
+    _safeUpdate();
+  }
+
+  Future<void> uploadProfileImage(File imageFile) async {
+    if (isUploadingProfileImage) return;
+
+    _startUploadProgress();
+
+    try {
+      uploadStatusMessage = 'Uploading photo...';
+      _safeUpdate();
+
+      final response = await ApiService.postMultipart(
+        Apis.uploadProfileImage,
+        fields: const {},
+        filePath: imageFile.path,
+        fileField: 'profile_image',
+        timeout: const Duration(seconds: 180),
+      );
+
+      if (response is! Map<String, dynamic>) {
+        throw Exception('Invalid server response');
+      }
+
+      final success = response['success'] == true;
+      if (!success) {
+        final message =
+            response['message']?.toString() ??
+            'Unable to register face profile. Please try again.';
+        throw Exception(message);
+      }
+
+      final authController = Get.find<AuthController>();
+      final employee = response['employee'];
+      if (employee is Map<String, dynamic>) {
+        await ApiService.saveEmployee(employee);
+        authController.employee = employee;
+      } else {
+        final current = Map<String, dynamic>.from(
+          authController.employee ?? <String, dynamic>{},
+        );
+        current['has_face_registered'] = true;
+        await ApiService.saveEmployee(current);
+        authController.employee = current;
+      }
+
+      uploadImage = false;
+      _finishUploadProgress(success: true);
+      authController.update();
+
+      await Future.delayed(const Duration(milliseconds: 400));
+      _resetUploadProgress();
+
+      Get.snackbar(
+        "Success",
+        response['message']?.toString() ?? "Face profile registered successfully",
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } on ApiException catch (e) {
+      _resetUploadProgress();
       Get.snackbar(
         "Error",
-        "Something went wrong: $e",
+        e.message,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      _resetUploadProgress();
+      Get.snackbar(
+        "Error",
+        e.toString().replaceFirst('Exception: ', ''),
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -589,5 +667,11 @@ class DashboardController extends GetxController {
 
   void _safeUpdate() {
     if (!isClosed) update();
+  }
+
+  @override
+  void onClose() {
+    _uploadProgressTimer?.cancel();
+    super.onClose();
   }
 }
