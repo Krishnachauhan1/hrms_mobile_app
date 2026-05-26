@@ -2,8 +2,10 @@ import 'package:employee_app/employee_flow/attendance/attendance_screen.dart';
 import 'package:employee_app/employee_flow/breaks/break_time_screen.dart';
 import 'package:employee_app/employee_flow/dashboard/dashboardscreen.dart';
 import 'package:employee_app/employee_flow/leaves/leavescreen.dart';
+import 'package:employee_app/employee_flow/location/field_location_controller.dart';
 import 'package:employee_app/employee_flow/salary/salaryscreen.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,6 +16,17 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!Get.isRegistered<FieldLocationController>()) {
+        Get.put(FieldLocationController(), permanent: true);
+      }
+      Get.find<FieldLocationController>().start();
+    });
+  }
 
   final List<Widget> _pages = [
     const DashboardPage(),
@@ -32,69 +45,109 @@ class _HomePageState extends State<HomePage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
           ],
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.dashboard_rounded, 'Home'),
-                _buildNavItem(1, Icons.fingerprint_rounded, 'Attendance'),
-                _buildNavItem(2, Icons.free_breakfast_outlined, 'Break'),
-                _buildNavItem(3, Icons.calendar_today_rounded, 'Leave'),
-                _buildNavItem(
-                  4,
-                  Icons.account_balance_wallet_rounded,
-                  'Salary',
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = MediaQuery.sizeOf(context).width;
+              final compact = width < 380;
+              final hPad = width * 0.02;
+
+              return Padding(
+                padding: EdgeInsets.fromLTRB(hPad, 6, hPad, 8),
+                child: Row(
+                  children: [
+                    _buildNavItem(
+                      0,
+                      Icons.dashboard_rounded,
+                      'Home',
+                      compact: compact,
+                    ),
+                    _buildNavItem(
+                      1,
+                      Icons.fingerprint_rounded,
+                      compact ? 'Attend' : 'Attendance',
+                      compact: compact,
+                    ),
+                    _buildNavItem(
+                      2,
+                      Icons.free_breakfast_outlined,
+                      'Break',
+                      compact: compact,
+                    ),
+                    _buildNavItem(
+                      3,
+                      Icons.calendar_today_rounded,
+                      'Leave',
+                      compact: compact,
+                    ),
+                    _buildNavItem(
+                      4,
+                      Icons.account_balance_wallet_rounded,
+                      'Salary',
+                      compact: compact,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(
+    int index,
+    IconData icon,
+    String label, {
+    required bool compact,
+  }) {
     final isSelected = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 16 : 12,
-          vertical: 8,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF6C5CE7) : Colors.transparent,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.white : const Color(0xFFB2B7C2),
-              size: 24,
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedIndex = index),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 2 : 4,
+            vertical: compact ? 6 : 8,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF6C5CE7) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : const Color(0xFFB2B7C2),
+                size: compact ? 22 : 24,
+              ),
+              SizedBox(height: compact ? 2 : 4),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFFB2B7C2),
+                  fontWeight:
+                      isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: compact ? 10 : 11,
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );

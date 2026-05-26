@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/apis.dart';
 import 'package:employee_app/authentication/auth_controller.dart';
+import 'package:employee_app/employee_flow/location/field_location_controller.dart';
 
 class DashboardController extends GetxController {
   String employeeName = '';
@@ -387,6 +388,7 @@ class DashboardController extends GetxController {
     isLoggingOut = true;
     update();
     try {
+      FieldLocationController.stopIfRegistered();
       await ApiService.clearToken();
       Get.offAllNamed('/login');
     } catch (e) {

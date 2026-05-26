@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:employee_app/api_service.dart';
+import 'package:employee_app/employee_flow/location/field_location_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -27,6 +28,10 @@ class _SplashScreenState extends State<SplashScreen> {
       final user = await ApiService.getEmployee();
       if (user != null) {
         if (user["role_id"] == 3) {
+          if (!Get.isRegistered<FieldLocationController>()) {
+            Get.put(FieldLocationController(), permanent: true);
+          }
+          await Get.find<FieldLocationController>().start();
           Get.offAllNamed("/home");
         } else {
           Get.offAllNamed("/mainShell");

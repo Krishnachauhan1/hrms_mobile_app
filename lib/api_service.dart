@@ -179,13 +179,15 @@ class ApiService {
     final url = Uri.parse('${Apis.baseUrl}${Apis.login}');
     final headers = await _buildHeaders(withAuth: false);
 
-    final deviceId = deviceInfo['deviceId']?.toString() ??
+    final deviceId =
+        deviceInfo['deviceId']?.toString() ??
         deviceInfo['identifierForVendor']?.toString();
 
     if (deviceId == null || deviceId.isEmpty) {
       throw ApiException(
         statusCode: 400,
-        message: 'Unable to identify this device. Please restart the app and try again.',
+        message:
+            'Unable to identify this device. Please restart the app and try again.',
         errorCode: 'device_id_missing',
       );
     }

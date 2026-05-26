@@ -1,6 +1,7 @@
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/employee_flow/device_info_service.dart';
 import 'package:employee_app/employee_flow/employee_permission_controller.dart';
+import 'package:employee_app/employee_flow/location/field_location_controller.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -81,6 +82,10 @@ class AuthController extends GetxController {
       final roleId = employee?["role_id"];
 
       if (roleId == 3) {
+        if (!Get.isRegistered<FieldLocationController>()) {
+          Get.put(FieldLocationController(), permanent: true);
+        }
+        await Get.find<FieldLocationController>().start();
         Get.offAllNamed("/home");
       } else {
         Get.offAllNamed(AppRoutes.MAIN_SHELL);
@@ -97,6 +102,7 @@ class AuthController extends GetxController {
   }
 
   Future<void> logout() async {
+    FieldLocationController.stopIfRegistered();
     await ApiService.clearToken();
     final ctrl = Get.find<EmployeeFeatureController>();
     // ctrl.reset();

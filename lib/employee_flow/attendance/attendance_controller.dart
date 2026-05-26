@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:camera/camera.dart';
 import 'package:employee_app/employee_flow/employee_permission_controller.dart';
+import 'package:employee_app/employee_flow/location/field_location_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -129,7 +130,6 @@ class AttendanceRecord {
 class AttendanceController extends GetxController with WidgetsBindingObserver {
   int? employeeId;
   late final AudioPlayer _successPlayer;
-  Timer? _locationTimer;
   Position? currentPosition;
   // Camera
   CameraController? cameraController;
@@ -169,7 +169,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     _successPlayer.setReleaseMode(ReleaseMode.stop);
     _loadAttendanceData();
     fetchCurrentLocation();
-    startLocationTracking();
   }
 
   Future<void> _loadAttendanceData() async {
@@ -208,14 +207,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     isQrScannerOpen = false;
     isProcessingQr = false;
     _safeUpdate();
-  }
-
-  void startLocationTracking() {
-    _locationTimer?.cancel();
-    _locationTimer = Timer.periodic(const Duration(minutes: 10), (_) async {
-      await fetchCurrentLocation();
-      await sendEmployeeLocation();
-    });
   }
 
   void _showLocationPopup() {
@@ -433,39 +424,14 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   //   }
   // }
   Future<void> sendEmployeeLocation() async {
-    try {
-      if (!isCheckedIn) return;
-
-      if (currentPosition == null) {
-        await fetchCurrentLocation();
-      }
-
-      if (currentPosition == null) {
-        print("Location not available");
-        return;
-      }
-
-      print("LAT => ${currentPosition!.latitude}");
-      print("LNG => ${currentPosition!.longitude}");
-
-      final orgId =
-          int.tryParse(await ApiService.getOrganizationId() ?? '0') ?? 0;
-
-      final response = await ApiService.addEmployeeLocation(
-        organizationId: orgId,
-        employeeId: employeeId ?? 0,
-        latitude: currentPosition!.latitude,
-        longitude: currentPosition!.longitude,
-      );
-
-      print("LOCATION API RESPONSE => $response");
-    } on ApiException catch (e) {
-      print("LOCATION API ERROR => ${e.message}");
-
-      Get.snackbar("Location Error", e.message);
-    } catch (e) {
-      print("UNKNOWN ERROR => $e");
+    if (!isCheckedIn) return;
+    if (Get.isRegistered<FieldLocationController>()) {
+      await Get.find<FieldLocationController>().refreshNow();
+      final pos = Get.find<FieldLocationController>().lastPosition;
+      if (pos != null) currentPosition = pos;
+      return;
     }
+    await fetchCurrentLocation();
   }
 
   Future<Position?> _getLocation() async {
@@ -719,6 +685,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
       await checkAttendanceStatus();
+      await _syncFieldLocation();
       await Future.delayed(const Duration(seconds: 3));
       if (isClosed) return;
       isRecognized = false;
@@ -859,15 +826,28 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       _showSuccess("QR Check-Out Successful");
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
+      await _syncFieldLocation();
     } catch (e) {
       if (e.toString().contains("logout first")) {
         isCheckedIn = true;
         _showError("Already checked in. Please scan again to logout.");
+        await _syncFieldLocation();
       } else {
         _showError("QR Login Failed: ${e.toString()}");
       }
     } finally {
       isProcessingQr = false;
+      _safeUpdate();
+    }
+  }
+
+  Future<void> _syncFieldLocation() async {
+    if (!Get.isRegistered<FieldLocationController>()) return;
+    final loc = Get.find<FieldLocationController>();
+    print('user current location =>$loc');
+    await loc.refreshNow();
+    if (loc.lastPosition != null) {
+      currentPosition = loc.lastPosition;
       _safeUpdate();
     }
   }
@@ -1091,7 +1071,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   @override
   void onClose() {
     WidgetsBinding.instance.removeObserver(this);
-    _locationTimer?.cancel();
     _safeDisposeCamera();
     _successPlayer.dispose();
     super.onClose();
