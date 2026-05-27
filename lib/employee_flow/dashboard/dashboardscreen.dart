@@ -27,7 +27,6 @@ class DashboardPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(controller, context),
-                    const SizedBox(height: 30),
                     _buildAttendanceCard(controller),
                     const SizedBox(height: 20),
                     _buildQuickActions(context),
@@ -286,15 +285,16 @@ class DashboardPage extends StatelessWidget {
                 icon: Icons.fingerprint_rounded,
                 label: 'Mark Attendance',
                 color: const Color(0xFF00B894),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AttendancePage()),
-                ).then((value) {
-                  if (value == true) {
-                    final controller = Get.find<DashboardController>();
-                    controller.fetchTotalAttendance();
-                  }
-                }),
+                onTap: () =>
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AttendancePage()),
+                    ).then((value) {
+                      if (value == true) {
+                        final controller = Get.find<DashboardController>();
+                        controller.fetchTotalAttendance();
+                      }
+                    }),
               ),
             ),
             const SizedBox(width: 15),

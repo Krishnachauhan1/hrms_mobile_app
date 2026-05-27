@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:employee_app/api_service.dart';
 import 'package:employee_app/apis.dart';
 import 'package:employee_app/authentication/auth_controller.dart';
+import 'package:employee_app/employee_flow/location/field_location_controller.dart';
 
 class DashboardController extends GetxController {
   String employeeName = '';
@@ -387,6 +388,7 @@ class DashboardController extends GetxController {
     isLoggingOut = true;
     update();
     try {
+      FieldLocationController.stopIfRegistered();
       await ApiService.clearToken();
       Get.offAllNamed('/login');
     } catch (e) {
@@ -501,7 +503,9 @@ class DashboardController extends GetxController {
     uploadStatusMessage = 'Uploading photo...';
     _safeUpdate();
 
-    _uploadProgressTimer = Timer.periodic(const Duration(milliseconds: 600), (_) {
+    _uploadProgressTimer = Timer.periodic(const Duration(milliseconds: 600), (
+      _,
+    ) {
       if (!isUploadingProfileImage) return;
       if (uploadProgress < 0.25) {
         uploadStatusMessage = 'Uploading photo...';
@@ -550,7 +554,7 @@ class DashboardController extends GetxController {
         fileField: 'profile_image',
         timeout: const Duration(seconds: 180),
       );
-
+      print("profile upload response => $response");
       if (response is! Map<String, dynamic>) {
         throw Exception('Invalid server response');
       }
@@ -586,7 +590,8 @@ class DashboardController extends GetxController {
 
       Get.snackbar(
         "Success",
-        response['message']?.toString() ?? "Face profile registered successfully",
+        response['message']?.toString() ??
+            "Face profile registered successfully",
         backgroundColor: Colors.green,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,

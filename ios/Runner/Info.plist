@@ -28,6 +28,15 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>we are building a hr mangement system where making a attendance using face recognization that's why we need camera that's it</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is used to record field attendance while you are checked in.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Your location is refreshed every 10 minutes in the background while you are checked in.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

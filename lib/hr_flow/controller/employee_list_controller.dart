@@ -1,4 +1,5 @@
 import 'package:employee_app/hr_flow/controller/main_shell_controller.dart';
+import 'package:employee_app/hr_flow/location/admin_location_sync.dart';
 import 'package:employee_app/hr_flow/models/employee_model.dart';
 import 'package:employee_app/hr_flow/routes/app_routes.dart';
 import 'package:get/get.dart';
@@ -10,6 +11,7 @@ class EmployeeListController extends GetxController {
   List<Map<String, dynamic>> employee = [];
   String searchQuery = '';
   String selectedFilter = 'All';
+  bool isSyncingLocations = false;
 
   @override
   void onInit() {
@@ -21,17 +23,11 @@ class EmployeeListController extends GetxController {
   Future<void> fetchEmployees() async {
     try {
       final orgId = await ApiService.getOrganizationId();
-      print("org id = $orgId");
-      if (orgId == null || orgId.isEmpty) {
-        // print("org id null");
-        return;
-      }
-      // final url = Apis.allEmployee;
+      if (orgId == null || orgId.isEmpty) return;
+
       final url = Apis.employeesByOrganizations(orgId);
-      // print("API URL: $url");
       final res = await ApiService.get(url);
 
-      // print('employee data is====== $res');
       if (res["success"] == true) {
         final List data = res["data"];
         _shell.employees.clear();
@@ -61,11 +57,25 @@ class EmployeeListController extends GetxController {
             );
           }).toList(),
         );
+        await refreshLocations();
         update();
       }
     } catch (e) {
       print("employee error========== $e");
     }
+  }
+
+  /// GET /employee-locations → SharedPreferences → employee list UI.
+  Future<void> refreshLocations() async {
+    isSyncingLocations = true;
+    update();
+
+    await AdminLocationSync.run();
+    await _shell.applyCachedLocations();
+    update();
+
+    isSyncingLocations = false;
+    update();
   }
 
   List<Employee> get filteredEmployees {
