@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
+import 'package:employee_app/hr_flow/location/admin_location_sync.dart';
 import 'package:employee_app/hr_flow/models/attendance_model.dart';
 import 'package:employee_app/hr_flow/models/employee_model.dart';
 import 'package:employee_app/hr_flow/models/leave_request_model.dart';
@@ -12,11 +15,62 @@ class MainShellController extends GetxController {
   final List<Attendance> attendanceRecords = <Attendance>[];
 
   bool isLeaveLoading = false;
+  Timer? _locationTimer;
+
+  /// Employee har 10 min bhejta hai; admin har 1 min fetch + cache update.
+  static const Duration locationPollInterval = Duration(minutes: 1);
 
   @override
   void onInit() {
     super.onInit();
     fetchLeaveApplications();
+    _startLocationSync();
+  }
+
+  void _startLocationSync() {
+    _locationTimer?.cancel();
+    _syncLocations();
+    _locationTimer = Timer.periodic(locationPollInterval, (_) {
+      _syncLocations();
+    });
+  }
+
+  Future<void> _syncLocations() async {
+    final ok = await AdminLocationSync.run();
+    if (ok) {
+      await applyCachedLocations();
+    }
+  }
+
+  Future<void> applyCachedLocations() async {
+    if (employees.isEmpty) return;
+
+    for (var i = 0; i < employees.length; i++) {
+      final empId = int.tryParse(employees[i].id);
+      if (empId == null) continue;
+
+      final latest = await AdminLocationSync.latestForEmployee(empId);
+      if (latest == null) continue;
+
+      final lat = double.tryParse('${latest['latitude'] ?? ''}');
+      final lng = double.tryParse('${latest['longitude'] ?? ''}');
+      final at = DateTime.tryParse(
+        '${latest['created_at'] ?? latest['updated_at'] ?? ''}',
+      )?.toLocal();
+
+      employees[i] = employees[i].copyWith(
+        latitude: lat,
+        longitude: lng,
+        lastLocationAt: at,
+      );
+    }
+    update();
+  }
+
+  @override
+  void onClose() {
+    _locationTimer?.cancel();
+    super.onClose();
   }
 
   void changePage(int index) {

@@ -17,6 +17,9 @@ class Employee {
   final int usedLeaves;
   final bool isLoggedIn;
   final DateTime? lastLoginTime;
+  final double? latitude;
+  final double? longitude;
+  final DateTime? lastLocationAt;
 
   Employee({
     required this.id,
@@ -37,7 +40,17 @@ class Employee {
     this.usedLeaves = 0,
     this.isLoggedIn = false,
     this.lastLoginTime,
+    this.latitude,
+    this.longitude,
+    this.lastLocationAt,
   });
+
+  String get locationText {
+    if (latitude != null && longitude != null) {
+      return '${latitude!.toStringAsFixed(5)}, ${longitude!.toStringAsFixed(5)}';
+    }
+    return 'No location yet';
+  }
 
   int get remainingLeaves => totalLeaves - usedLeaves;
 
@@ -120,6 +133,9 @@ class Employee {
     int? usedLeaves,
     bool? isLoggedIn,
     DateTime? lastLoginTime,
+    double? latitude,
+    double? longitude,
+    DateTime? lastLocationAt,
   }) {
     return Employee(
       id: id ?? this.id,
@@ -140,6 +156,9 @@ class Employee {
       usedLeaves: usedLeaves ?? this.usedLeaves,
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
       lastLoginTime: lastLoginTime ?? this.lastLoginTime,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      lastLocationAt: lastLocationAt ?? this.lastLocationAt,
     );
   }
 }

@@ -2,7 +2,6 @@ import 'package:employee_app/employee_flow/attendance/attendance_screen.dart';
 import 'package:employee_app/employee_flow/breaks/break_time_screen.dart';
 import 'package:employee_app/employee_flow/dashboard/dashboardscreen.dart';
 import 'package:employee_app/employee_flow/leaves/leavescreen.dart';
-import 'package:employee_app/employee_flow/location/field_location_controller.dart';
 import 'package:employee_app/employee_flow/salary/salaryscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -16,17 +15,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!Get.isRegistered<FieldLocationController>()) {
-        Get.put(FieldLocationController(), permanent: true);
-      }
-      Get.find<FieldLocationController>().start();
-    });
-  }
 
   final List<Widget> _pages = [
     const DashboardPage(),

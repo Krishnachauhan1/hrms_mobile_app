@@ -27,7 +27,6 @@ class DashboardPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(controller, context),
-
                     _buildAttendanceCard(controller),
                     const SizedBox(height: 20),
                     _buildQuickActions(context),

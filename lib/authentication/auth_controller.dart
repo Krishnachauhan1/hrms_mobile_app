@@ -82,10 +82,6 @@ class AuthController extends GetxController {
       final roleId = employee?["role_id"];
 
       if (roleId == 3) {
-        if (!Get.isRegistered<FieldLocationController>()) {
-          Get.put(FieldLocationController(), permanent: true);
-        }
-        await Get.find<FieldLocationController>().start();
         Get.offAllNamed("/home");
       } else {
         Get.offAllNamed(AppRoutes.MAIN_SHELL);

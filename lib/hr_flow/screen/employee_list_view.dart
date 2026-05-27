@@ -3,24 +3,40 @@ import 'package:employee_app/hr_flow/controller/employee_list_controller.dart';
 import 'package:employee_app/hr_flow/models/employee_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 class EmployeeListView extends GetView<EmployeeListController> {
   const EmployeeListView({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Employees'),
-        automaticallyImplyLeading: false,
-      ),
-      body: Column(
-        children: [
-          _SearchAndFilter(controller: controller),
-          _SummaryBar(controller: controller),
-          Expanded(child: _EmployeeList(controller: controller)),
-        ],
+    return GetBuilder<EmployeeListController>(
+      builder: (c) => Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text('Employees'),
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+              tooltip: 'Refresh locations',
+              onPressed: c.isSyncingLocations ? null : c.refreshLocations,
+              icon: c.isSyncingLocations
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.location_searching),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            _SearchAndFilter(controller: c),
+            _SummaryBar(controller: c),
+            Expanded(child: _EmployeeList(controller: c)),
+          ],
+        ),
       ),
     );
   }
@@ -296,6 +312,34 @@ class _EmployeeCard extends StatelessWidget {
                       fontSize: 13,
                       color: Colors.black,
                     ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 13,
+                        color: employee.latitude != null
+                            ? const Color(0xFF27AE60)
+                            : Colors.grey,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          employee.latitude != null
+                              ? '${employee.locationText}${employee.lastLocationAt != null ? ' · ${DateFormat('hh:mm a').format(employee.lastLocationAt!)}' : ''}'
+                              : 'Location pending',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: employee.latitude != null
+                                ? const Color(0xFF636E72)
+                                : Colors.grey,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Row(

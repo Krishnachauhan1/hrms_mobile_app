@@ -34,6 +34,7 @@ class Apis {
   static String employeeloginbyQR = '/attendance/qr-login';
   static String employeelogoutbyQR = '/attendance/qr-logout';
   static const String uploadProfileImage = '/upload-profile-image';
+  static const String employeeLocations = '/employee-locations';
   // Breaks
   static const String breakTypes = '/break-types';
   static const String breaksStart = '/breaks/start';

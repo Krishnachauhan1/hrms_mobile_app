@@ -60,7 +60,7 @@ class ProfileBottomSheet extends StatelessWidget {
           const SizedBox(height: 10),
           _cancelButton(context),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 40),
         ],
       ),
     );

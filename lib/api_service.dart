@@ -227,6 +227,16 @@ class ApiService {
     );
   }
 
+  /// HR/Admin: GET `/employee-locations` for one employee.
+  static Future<dynamic> getEmployeeLocations(int employeeId) async {
+    return get('/employee-locations?employee_id=$employeeId');
+  }
+
+  /// HR/Admin: GET all location rows (filter client-side by employee_id).
+  static Future<dynamic> getAllEmployeeLocations() async {
+    return get('/employee-locations');
+  }
+
   static Future<dynamic> get(String endpoint) async {
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final headers = await _buildHeaders();

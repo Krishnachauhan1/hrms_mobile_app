@@ -183,6 +183,9 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       fetchTodayAttendance(),
       fetchAttendanceHistory(),
     ]);
+    if (isCheckedIn) {
+      await _syncFieldLocation();
+    }
   }
 
   @override
@@ -427,8 +430,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     if (!isCheckedIn) return;
     if (Get.isRegistered<FieldLocationController>()) {
       await Get.find<FieldLocationController>().refreshNow();
-      final pos = Get.find<FieldLocationController>().lastPosition;
-      if (pos != null) currentPosition = pos;
       return;
     }
     await fetchCurrentLocation();
@@ -755,6 +756,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       );
 
       isCheckedIn = false;
+      await _stopFieldLocationTracking();
       isScanning = false;
       isRecognized = true;
       markedTime = TimeOfDay.now().format(Get.context!);
@@ -842,14 +844,14 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _syncFieldLocation() async {
-    if (!Get.isRegistered<FieldLocationController>()) return;
-    final loc = Get.find<FieldLocationController>();
-    print('user current location =>$loc');
-    await loc.refreshNow();
-    if (loc.lastPosition != null) {
-      currentPosition = loc.lastPosition;
-      _safeUpdate();
+    if (!Get.isRegistered<FieldLocationController>()) {
+      Get.put(FieldLocationController(), permanent: true);
     }
+    await Get.find<FieldLocationController>().syncOnCheckIn();
+  }
+
+  Future<void> _stopFieldLocationTracking() async {
+    FieldLocationController.stopIfRegistered();
   }
 
   Future<void> _markLogoutWithQr(String qrData) async {
@@ -875,6 +877,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       );
       print("QR LOGOUT RESPONSE ======== $response");
       isCheckedIn = false;
+      await _stopFieldLocationTracking();
       markedTime = TimeOfDay.now().format(Get.context!);
       await _playSuccessSound();
       _showSuccess("QR Check-Out Successful");
