@@ -62,10 +62,23 @@ class LocationBackgroundService {
     final service = FlutterBackgroundService();
     if (!await service.isRunning()) {
       await service.startService();
+      // First sync runs inside _onStart — avoid duplicate POST here.
     } else {
       service.invoke('runNow');
     }
-    await LocationSyncTask.run(force: true);
+  }
+
+  /// One immediate post after check-in (respects 10 min guard + in-flight lock).
+  static Future<void> syncOnceAfterCheckIn() async {
+    await _ensureLocationPermissions();
+    await LocationSyncTask.setTrackingEnabled(true);
+    final service = FlutterBackgroundService();
+    if (!await service.isRunning()) {
+      await service.startService();
+      await LocationSyncTask.run(force: true);
+    } else {
+      service.invoke('runNow');
+    }
   }
 
   static Future<void> stop() async {
@@ -107,12 +120,19 @@ class LocationBackgroundService {
       return diff;
     }
 
-    Future<void> tick({bool force = false}) async {
+    Future<void> tick() async {
       if (!await LocationSyncTask.isTrackingEnabled()) {
         service.stopSelf();
         return;
       }
-      await LocationSyncTask.run(force: force);
+      await LocationSyncTask.run();
+
+      if (service is AndroidServiceInstance) {
+        await service.setForegroundNotificationInfo(
+          title: 'Tracking Active',
+          content: 'Last update ${DateTime.now().toLocal()}',
+        );
+      }
     }
 
     if (service is AndroidServiceInstance) {
@@ -124,10 +144,9 @@ class LocationBackgroundService {
       service.stopSelf();
     });
 
-    service.on('runNow').listen((_) => tick(force: true));
+    service.on('runNow').listen((_) => tick());
 
-    await tick(force: true);
-
+    // First post is triggered by syncOnceAfterCheckIn(); here we only schedule 10-min slots.
     // Align to wall-clock 10-minute boundaries to match admin expectations.
     timer = Timer(untilNext10MinBoundary(), () {
       tick();
@@ -148,6 +167,12 @@ class LocationBackgroundService {
     final always = await Permission.locationAlways.status;
     if (!always.isGranted) {
       await Permission.locationAlways.request();
+    }
+
+    // Some OEMs kill background timers unless battery optimization is ignored.
+    final ignoreBattery = await Permission.ignoreBatteryOptimizations.status;
+    if (!ignoreBattery.isGranted) {
+      await Permission.ignoreBatteryOptimizations.request();
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:employee_app/apis.dart';
 import 'package:employee_app/employee_flow/location/location_snapshot.dart';
@@ -13,6 +14,8 @@ class LocationSyncTask {
   LocationSyncTask._();
 
   static const Duration refreshInterval = Duration(minutes: 10);
+  /// Prevents overlapping runs (start + service tick + check-in retry).
+  static bool _runInProgress = false;
   static const String trackingEnabledKey = 'location_tracking_enabled';
   static const String lastSentKey = 'last_location_sent_ms';
   static const String lastAttemptKey = 'last_location_attempt_ms';
@@ -73,68 +76,79 @@ class LocationSyncTask {
 
   static Future<void> run({bool force = false}) async {
     if (!await isTrackingEnabled()) return;
+    if (_runInProgress) {
+      debugPrint('LocationSync: skipped — already running');
+      return;
+    }
+    _runInProgress = true;
 
-    final prefs = await SharedPreferences.getInstance();
+    try {
+      final prefs = await SharedPreferences.getInstance();
 
-    if (!force) {
-      final lastMs = prefs.getInt(lastSentKey);
-      if (lastMs != null) {
-        final last = DateTime.fromMillisecondsSinceEpoch(lastMs);
-        if (DateTime.now().difference(last) < refreshInterval) {
-          debugPrint('LocationSync: skipped — within 10 min interval');
-          return;
+      // Enforce 10 min between successful posts unless explicitly forced
+      // (e.g. immediately after check-in).
+      if (!force) {
+        final lastMs = prefs.getInt(lastSentKey);
+        if (lastMs != null) {
+          final last = DateTime.fromMillisecondsSinceEpoch(lastMs);
+          if (DateTime.now().difference(last) < refreshInterval) {
+            debugPrint('LocationSync: skipped — within 10 min interval');
+            return;
+          }
         }
       }
-    }
 
-    await _markAttempt(prefs);
+      await _markAttempt(prefs);
 
-    final token = prefs.getString(tokenKey);
-    if (token == null || token.isEmpty) {
-      await _markError(prefs, 'No auth token');
-      return;
-    }
+      final token = prefs.getString(tokenKey);
+      if (token == null || token.isEmpty) {
+        await _markError(prefs, 'No auth token');
+        return;
+      }
 
-    final employeeId = _readEmployeeId(prefs);
-    if (employeeId == null) {
-      await _markError(prefs, 'Employee ID missing');
-      return;
-    }
+      final employeeId = _readEmployeeId(prefs);
+      if (employeeId == null) {
+        await _markError(prefs, 'Employee ID missing');
+        return;
+      }
 
-    if (!await _isCheckedIn(token, employeeId)) {
-      await _markError(prefs, 'Not checked in');
-      return;
-    }
+      if (!await _isCheckedIn(token, employeeId)) {
+        await _markError(prefs, 'Not checked in');
+        return;
+      }
 
-    final position = await _getPosition();
-    if (position == null) {
-      await _markError(prefs, 'GPS unavailable or permission denied');
-      return;
-    }
+      final position = await _getPosition();
+      if (position == null) {
+        await _markError(prefs, 'GPS unavailable or permission denied');
+        return;
+      }
 
-    final orgId = int.tryParse(prefs.getString(orgIdKey) ?? '0') ?? 0;
-    final postError = await _sendLocation(
-      token: token,
-      organizationId: orgId,
-      employeeId: employeeId,
-      latitude: position.latitude,
-      longitude: position.longitude,
-    );
-
-    if (postError == null) {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      await prefs.setInt(lastSentKey, now);
-      await prefs.setDouble(lastLatKey, position.latitude);
-      await prefs.setDouble(lastLngKey, position.longitude);
-      await prefs.remove(lastErrorKey);
-      debugPrint(
-        'LocationSync: OK ${position.latitude}, ${position.longitude}',
+      final orgId = int.tryParse(prefs.getString(orgIdKey) ?? '0') ?? 0;
+      final postError = await _sendLocation(
+        token: token,
+        organizationId: orgId,
+        employeeId: employeeId,
+        latitude: position.latitude,
+        longitude: position.longitude,
       );
-      await logDebugState();
-      return;
-    }
 
-    await _markError(prefs, postError);
+      if (postError == null) {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        await prefs.setInt(lastSentKey, now);
+        await prefs.setDouble(lastLatKey, position.latitude);
+        await prefs.setDouble(lastLngKey, position.longitude);
+        await prefs.remove(lastErrorKey);
+        debugPrint(
+          'LocationSync: OK ${position.latitude}, ${position.longitude}',
+        );
+        await logDebugState();
+        return;
+      }
+
+      await _markError(prefs, postError);
+    } finally {
+      _runInProgress = false;
+    }
   }
 
   static Future<void> _markAttempt(SharedPreferences prefs) async {
@@ -210,12 +224,21 @@ class LocationSyncTask {
         return null;
       }
 
-      return await Geolocator.getCurrentPosition(
+      // Prefer quick sources first; background GPS can take >25s to lock.
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) return lastKnown;
+
+      // Stream-based first fix: grab the first position update (with a higher timeout).
+      final stream = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 25),
+          distanceFilter: 20,
         ),
       );
+
+      return await stream
+          .first
+          .timeout(const Duration(minutes: 2));
     } catch (e) {
       debugPrint('LocationSync: GPS error — $e');
       return null;
