@@ -28,19 +28,13 @@ class LocationBackgroundService {
       requestSoundPermission: false,
     );
     await notifications.initialize(
-<<<<<<< HEAD
       settings: const InitializationSettings(android: android, iOS: ios),
-=======
-      settings: const InitializationSettings(
-        android: android,
-        iOS: ios,
-      ),
->>>>>>> 6f7958ac4511e7ccb376a400b141f52b775c0083
     );
 
     await notifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(
           const AndroidNotificationChannel(
             _channelId,
@@ -165,8 +159,8 @@ class LocationBackgroundService {
       await LocationSyncTask.run(force: force);
       if (service is AndroidServiceInstance) {
         final snap = await LocationSyncTask.readSnapshot();
-        final sent = snap.lastSentAt?.toLocal().toString().split('.').first ??
-            'pending';
+        final sent =
+            snap.lastSentAt?.toLocal().toString().split('.').first ?? 'pending';
         service.setForegroundNotificationInfo(
           title: 'Quick Salary',
           content: snap.hasCoordinates
