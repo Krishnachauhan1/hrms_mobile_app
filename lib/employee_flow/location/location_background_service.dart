@@ -17,8 +17,16 @@ class LocationBackgroundService {
   static Future<void> initialize() async {
     final notifications = FlutterLocalNotificationsPlugin();
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const ios = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
     await notifications.initialize(
-      settings: const InitializationSettings(android: android),
+      settings: const InitializationSettings(
+        android: android,
+        iOS: ios,
+      ),
     );
 
     await notifications

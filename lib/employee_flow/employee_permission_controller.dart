@@ -35,7 +35,13 @@ class EmployeeFeatureController extends GetxController {
           data['can_view_salary'] == true ||
           data['can_view_salary'].toString() == '1';
 
+      final planFeatures = data['plan_features'];
+      final planFace = planFeatures is Map
+          ? planFeatures['can_use_face_recognition'] == true
+          : false;
+
       canUseFace =
+          planFace ||
           data['can_use_face_recognition'] == 1 ||
           data['can_use_face_recognition'] == true ||
           data['can_use_face_recognition'].toString() == '1';
