@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:employee_app/apis.dart';
 import 'package:employee_app/employee_flow/location/location_snapshot.dart';
@@ -12,6 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LocationSyncTask {
   LocationSyncTask._();
 
+  static const String _logTag = '[LocationBG]';
+  static void _log(String message) => debugPrint('$_logTag $message');
+
   static const Duration refreshInterval = Duration(minutes: 10);
   static const String trackingEnabledKey = 'location_tracking_enabled';
   static const String lastSentKey = 'last_location_sent_ms';
@@ -24,6 +28,7 @@ class LocationSyncTask {
   static const String employeeKey = 'auth_employee';
 
   static Future<void> setTrackingEnabled(bool enabled) async {
+    _log('setTrackingEnabled($enabled)');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(trackingEnabledKey, enabled);
     if (!enabled) {
@@ -56,9 +61,8 @@ class LocationSyncTask {
   /// Console debug — UI me nahi dikhega.
   static Future<void> logDebugState() async {
     final s = await readSnapshot();
-    debugPrint(
-      'LocationSync DEBUG => '
-      'tracking=${s.trackingEnabled}, '
+    _log(
+      'state => tracking=${s.trackingEnabled}, '
       'lastAttempt=${s.lastAttemptAt}, '
       'lastSent=${s.lastSentAt}, '
       'coords=${s.coordinatesText}, '
@@ -72,7 +76,11 @@ class LocationSyncTask {
   }
 
   static Future<void> run({bool force = false}) async {
-    if (!await isTrackingEnabled()) return;
+    _log('sync run(force=$force) — started');
+    if (!await isTrackingEnabled()) {
+      _log('sync run() — skipped, tracking disabled');
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
 
@@ -81,7 +89,7 @@ class LocationSyncTask {
       if (lastMs != null) {
         final last = DateTime.fromMillisecondsSinceEpoch(lastMs);
         if (DateTime.now().difference(last) < refreshInterval) {
-          debugPrint('LocationSync: skipped — within 10 min interval');
+          _log('sync run() — skipped, within 10 min interval');
           return;
         }
       }
@@ -100,19 +108,28 @@ class LocationSyncTask {
       await _markError(prefs, 'Employee ID missing');
       return;
     }
+    _log('sync run() — employeeId=$employeeId');
 
-    if (!await _isCheckedIn(token, employeeId)) {
+    final checkedIn = await _isCheckedIn(token, employeeId);
+    _log('sync run() — checkedIn=$checkedIn');
+    if (!checkedIn) {
       await _markError(prefs, 'Not checked in');
       return;
     }
 
+    _log('sync run() — fetching GPS...');
     final position = await _getPosition();
     if (position == null) {
       await _markError(prefs, 'GPS unavailable or permission denied');
       return;
     }
+    _log(
+      'sync run() — GPS lat=${position.latitude}, lng=${position.longitude}, '
+      'accuracy=${position.accuracy}m',
+    );
 
     final orgId = int.tryParse(prefs.getString(orgIdKey) ?? '0') ?? 0;
+    _log('sync run() — posting to server (orgId=$orgId)...');
     final postError = await _sendLocation(
       token: token,
       organizationId: orgId,
@@ -127,8 +144,8 @@ class LocationSyncTask {
       await prefs.setDouble(lastLatKey, position.latitude);
       await prefs.setDouble(lastLngKey, position.longitude);
       await prefs.remove(lastErrorKey);
-      debugPrint(
-        'LocationSync: OK ${position.latitude}, ${position.longitude}',
+      _log(
+        'sync run() — SUCCESS posted ${position.latitude}, ${position.longitude}',
       );
       await logDebugState();
       return;
@@ -140,14 +157,14 @@ class LocationSyncTask {
   static Future<void> _markAttempt(SharedPreferences prefs) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await prefs.setInt(lastAttemptKey, now);
-    debugPrint(
-      'LocationSync: attempt at ${DateTime.fromMillisecondsSinceEpoch(now).toLocal()}',
+    _log(
+      'sync attempt at ${DateTime.fromMillisecondsSinceEpoch(now).toLocal()}',
     );
   }
 
   static Future<void> _markError(SharedPreferences prefs, String message) async {
     await prefs.setString(lastErrorKey, message);
-    debugPrint('LocationSync: FAILED — $message');
+    _log('sync FAILED — $message');
     await logDebugState();
   }
 
@@ -181,7 +198,7 @@ class LocationSyncTask {
           .timeout(const Duration(seconds: 30));
 
       if (res.statusCode < 200 || res.statusCode >= 300) {
-        debugPrint('LocationSync: status HTTP ${res.statusCode}');
+        _log('attendance status HTTP ${res.statusCode}');
         return false;
       }
 
@@ -189,35 +206,50 @@ class LocationSyncTask {
       if (body is! Map) return false;
 
       final status = (body['status'] ?? '').toString().toLowerCase();
+      _log('attendance status from API = "$status"');
       const checkedIn = {'checked_in', 'logged_in', 'present'};
       return checkedIn.contains(status);
     } catch (e) {
-      debugPrint('LocationSync: status error — $e');
+      _log('attendance status error — $e');
       return false;
     }
   }
 
   static Future<Position?> _getPosition() async {
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _log('GPS — location services disabled');
+        return null;
+      }
 
       var permission = await Geolocator.checkPermission();
+      _log('GPS — permission=$permission');
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
+        _log('GPS — permission after request=$permission');
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
+        _log('GPS — permission denied');
         return null;
       }
 
       return await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 25),
-        ),
+        locationSettings: Platform.isIOS
+            ? AppleSettings(
+                accuracy: LocationAccuracy.high,
+                timeLimit: const Duration(seconds: 25),
+                allowBackgroundLocationUpdates: true,
+                showBackgroundLocationIndicator: true,
+                pauseLocationUpdatesAutomatically: false,
+              )
+            : const LocationSettings(
+                accuracy: LocationAccuracy.high,
+                timeLimit: Duration(seconds: 25),
+              ),
       );
     } catch (e) {
-      debugPrint('LocationSync: GPS error — $e');
+      _log('GPS error — $e');
       return null;
     }
   }
@@ -249,6 +281,7 @@ class LocationSyncTask {
           )
           .timeout(const Duration(seconds: 30));
 
+      _log('POST /employee-locations → HTTP ${res.statusCode}');
       if (res.statusCode >= 200 && res.statusCode < 300) return null;
 
       final body = res.body.length > 120

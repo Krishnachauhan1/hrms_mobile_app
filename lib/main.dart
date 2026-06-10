@@ -1,6 +1,7 @@
 import 'package:employee_app/authentication/splash_scree.dart';
 import 'package:employee_app/employee_flow/employee_permission_controller.dart';
 import 'package:employee_app/employee_flow/location/location_background_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -14,7 +15,10 @@ import 'package:employee_app/hr_flow/routes/app_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('[LocationBG] main() — initializing location service');
   await LocationBackgroundService.initialize();
+  await LocationBackgroundService.resumeIfNeeded();
+  debugPrint('[LocationBG] main() — location service ready');
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );

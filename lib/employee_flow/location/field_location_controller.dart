@@ -1,19 +1,21 @@
 import 'package:employee_app/employee_flow/location/location_background_service.dart';
 import 'package:employee_app/employee_flow/location/location_sync_task.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 /// Background location — check-in par hamesha force refresh.
 class FieldLocationController extends GetxController {
-  bool _isRunning = false;
+  static const String _logTag = '[LocationBG]';
+  static void _log(String message) => debugPrint('$_logTag $message');
 
   /// Service start (background timer). Safe to call multiple times.
   Future<void> start() async {
-    _isRunning = true;
+    _log('FieldLocationController.start()');
     await LocationBackgroundService.start();
   }
 
   void stop() {
-    _isRunning = false;
+    _log('FieldLocationController.stop()');
     LocationBackgroundService.stop();
   }
 
@@ -25,23 +27,25 @@ class FieldLocationController extends GetxController {
 
   /// Check-in / manual — hamesha turant POST try kare (10 min interval ignore).
   Future<void> refreshNow() async {
+    _log('FieldLocationController.refreshNow()');
     await LocationSyncTask.run(force: true);
   }
 
   /// Check-in ke baad: service + turant location bhejo (retry agar server slow ho).
   Future<void> syncOnCheckIn() async {
+    _log('FieldLocationController.syncOnCheckIn()');
     await start();
     await refreshNow();
     final snap = await LocationSyncTask.readSnapshot();
     if (snap.lastError != null || snap.lastSentAt == null) {
+      _log('syncOnCheckIn() — retrying after 4s (error=${snap.lastError})');
       await Future.delayed(const Duration(seconds: 4));
       await refreshNow();
+    } else {
+      _log('syncOnCheckIn() — first sync OK');
     }
   }
 
-  @override
-  void onClose() {
-    stop();
-    super.onClose();
-  }
+  // Do not stop the background service on dispose — tracking must survive
+  // app backgrounding and process restarts until explicit checkout/logout.
 }

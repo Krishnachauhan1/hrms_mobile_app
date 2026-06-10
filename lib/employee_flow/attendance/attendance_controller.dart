@@ -193,8 +193,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
       _safeDisposeCamera();
-    } else if (state == AppLifecycleState.resumed && isCameraOpen) {
-      _initCamera();
+    } else if (state == AppLifecycleState.resumed) {
+      if (isCameraOpen) {
+        _initCamera();
+      }
+      if (isCheckedIn) {
+        unawaited(_syncFieldLocation());
+      }
     }
   }
 
