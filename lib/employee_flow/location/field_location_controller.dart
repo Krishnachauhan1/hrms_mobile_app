@@ -46,6 +46,5 @@ class FieldLocationController extends GetxController {
     }
   }
 
-  // Do not stop the background service on dispose — tracking must survive
-  // app backgrounding and process restarts until explicit checkout/logout.
+  // Face check-in: background service sends location every 10 min until checkout.
 }

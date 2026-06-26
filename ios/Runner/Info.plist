@@ -27,11 +27,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>we are building a hr mangement system where making a attendance using face recognization that's why we need camera that's it</string>
+	<string>Camera access is used for face recognition attendance at your workplace.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Your location is refreshed every 10 minutes in the background while you are checked in.</string>
+	<string>While you are checked in with face attendance, your location is sent every 10 minutes for field staff tracking, including when the app is in the background.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location is used to record field attendance while you are checked in.</string>
+	<string>Your location is used for face attendance verification and periodic field location updates while you are checked in.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

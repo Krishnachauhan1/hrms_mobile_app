@@ -26,8 +26,32 @@ void main() async {
   runApp(const HRMSApp());
 }
 
-class HRMSApp extends StatelessWidget {
+class HRMSApp extends StatefulWidget {
   const HRMSApp({super.key});
+
+  @override
+  State<HRMSApp> createState() => _HRMSAppState();
+}
+
+class _HRMSAppState extends State<HRMSApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      LocationBackgroundService.resumeIfNeeded();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

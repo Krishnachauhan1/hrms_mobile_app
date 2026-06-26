@@ -150,6 +150,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
   String? errorMessage;
   String? markedTime;
   bool isCheckedIn = false;
+  String? activeLoginType;
 
   // Today Record
   Map<String, dynamic>? todayRecord = {};
@@ -183,7 +184,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       fetchTodayAttendance(),
       fetchAttendanceHistory(),
     ]);
-    if (isCheckedIn) {
+    if (isCheckedIn && _shouldTrackFaceLocation()) {
       await _syncFieldLocation();
     }
   }
@@ -197,7 +198,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       if (isCameraOpen) {
         _initCamera();
       }
-      if (isCheckedIn) {
+      if (isCheckedIn && _shouldTrackFaceLocation()) {
         unawaited(_syncFieldLocation());
       }
     }
@@ -682,6 +683,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       attendanceResult = response as Map<String, dynamic>;
       markedTime = TimeOfDay.now().format(Get.context!);
       isCheckedIn = true;
+      activeLoginType = 'face';
       isScanning = false;
       isRecognized = true;
       await _closeCamera();
@@ -761,6 +763,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       );
 
       isCheckedIn = false;
+      activeLoginType = null;
       await _stopFieldLocationTracking();
       isScanning = false;
       isRecognized = true;
@@ -833,12 +836,10 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       _showSuccess("QR Check-Out Successful");
       await fetchTodayAttendance();
       await fetchAttendanceHistory();
-      await _syncFieldLocation();
     } catch (e) {
       if (e.toString().contains("logout first")) {
         isCheckedIn = true;
         _showError("Already checked in. Please scan again to logout.");
-        await _syncFieldLocation();
       } else {
         _showError("QR Login Failed: ${e.toString()}");
       }
@@ -848,7 +849,20 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  bool _shouldTrackFaceLocation() {
+    if (!isCheckedIn) return false;
+
+    final features = Get.isRegistered<EmployeeFeatureController>()
+        ? Get.find<EmployeeFeatureController>()
+        : null;
+    if (features == null || !features.canUseFace) return false;
+
+    final type = (activeLoginType ?? '').toLowerCase();
+    return type == 'face' || type == 'location';
+  }
+
   Future<void> _syncFieldLocation() async {
+    if (!_shouldTrackFaceLocation()) return;
     if (!Get.isRegistered<FieldLocationController>()) {
       Get.put(FieldLocationController(), permanent: true);
     }
@@ -882,6 +896,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       );
       print("QR LOGOUT RESPONSE ======== $response");
       isCheckedIn = false;
+      activeLoginType = null;
       await _stopFieldLocationTracking();
       markedTime = TimeOfDay.now().format(Get.context!);
       await _playSuccessSound();
@@ -951,8 +966,13 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
         if (checkedInStatuses.contains(status)) {
           isCheckedIn = true;
+          final loginType = res['login_type']?.toString();
+          if (loginType != null && loginType.isNotEmpty) {
+            activeLoginType = loginType;
+          }
         } else if (checkedOutStatuses.contains(status)) {
           isCheckedIn = false;
+          activeLoginType = null;
         } else {
           print("Unknown status: '$status' — falling back to history");
           isCheckedIn = isUserLoggedIn;

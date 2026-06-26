@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:ui';
 
 import 'package:employee_app/employee_flow/location/location_sync_task.dart';
@@ -31,31 +32,31 @@ class LocationBackgroundService {
       settings: const InitializationSettings(android: android, iOS: ios),
     );
 
-    await notifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(
-          const AndroidNotificationChannel(
-            _channelId,
-            'Location tracking',
-            description: 'Updates your work location every 10 minutes',
-            importance: Importance.low,
-          ),
-        );
+    if (!Platform.isIOS) {
+      await notifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.createNotificationChannel(
+            const AndroidNotificationChannel(
+              _channelId,
+              'Location tracking',
+              description: 'Updates your work location every 10 minutes',
+              importance: Importance.low,
+            ),
+          );
+    }
 
     final service = FlutterBackgroundService();
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: _onStart,
-        // If Android kills the process, auto-start helps keep tracking consistent.
-        // Tracking is still gated by SharedPreferences flag in LocationSyncTask.
         autoStart: true,
         autoStartOnBoot: true,
         isForegroundMode: true,
         notificationChannelId: _channelId,
         initialNotificationTitle: 'Quick Salary',
-        initialNotificationContent: 'Attendance active',
+        initialNotificationContent: 'Face attendance · location active',
         foregroundServiceNotificationId: _notificationId,
         foregroundServiceTypes: [AndroidForegroundType.location],
       ),
@@ -68,11 +69,11 @@ class LocationBackgroundService {
     _log('initialize() — done');
   }
 
-  /// Restart the foreground service when tracking was left on (e.g. after OS kill).
   static Future<void> resumeIfNeeded() async {
     final enabled = await LocationSyncTask.isTrackingEnabled();
     _log('resumeIfNeeded() — trackingEnabled=$enabled');
     if (!enabled) return;
+
     await _ensureLocationPermissions();
     final service = FlutterBackgroundService();
     final running = await service.isRunning();
@@ -90,11 +91,12 @@ class LocationBackgroundService {
     _log('start() — enabling tracking');
     await _ensureLocationPermissions();
     await LocationSyncTask.setTrackingEnabled(true);
+
     final service = FlutterBackgroundService();
     final running = await service.isRunning();
     if (!running) {
       await service.startService();
-      _log('start() — foreground service started');
+      _log('start() — background service started');
     } else {
       service.invoke('runNow');
       _log('start() — service already running, invoked runNow');
@@ -105,6 +107,7 @@ class LocationBackgroundService {
   static Future<void> stop() async {
     _log('stop() — disabling tracking');
     await LocationSyncTask.setTrackingEnabled(false);
+
     final service = FlutterBackgroundService();
     if (await service.isRunning()) {
       service.invoke('stopService');
@@ -143,7 +146,6 @@ class LocationBackgroundService {
       );
       final next = roundedDown.add(const Duration(minutes: 10));
       final diff = next.difference(now);
-      // Minimum 5 seconds to avoid tight loops
       if (diff.inSeconds < 5) return const Duration(seconds: 5);
       return diff;
     }
@@ -165,11 +167,7 @@ class LocationBackgroundService {
           title: 'Quick Salary',
           content: snap.hasCoordinates
               ? 'Location active · ${snap.coordinatesText} · $sent'
-              : 'Attendance location active · last sync $sent',
-        );
-        _log(
-          'tick() — notification updated · coords=${snap.coordinatesText} · '
-          'lastSent=$sent · error=${snap.lastError ?? "none"}',
+              : 'Face attendance · location sync · $sent',
         );
       }
       _log('tick(force=$force) — finished');
@@ -199,7 +197,6 @@ class LocationBackgroundService {
       '${firstDelay.inSeconds % 60}s, then every '
       '${LocationSyncTask.refreshInterval.inMinutes} min',
     );
-    // Align to wall-clock 10-minute boundaries to match admin expectations.
     timer = Timer(firstDelay, () {
       tick();
       timer = Timer.periodic(LocationSyncTask.refreshInterval, (_) => tick());
@@ -219,7 +216,6 @@ class LocationBackgroundService {
     }
     if (!status.isGranted) return;
 
-    // Android: "Allow all the time" for updates when app is in background
     final always = await Permission.locationAlways.status;
     _log('permissions — locationAlways=$always');
     if (!always.isGranted) {
