@@ -699,6 +699,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       isRecognized = false;
       _safeUpdate();
     } on ApiException catch (e) {
+      print('face service error $e');
       isScanning = false;
       await _closeCamera();
       if (suppressErrorUi) {
