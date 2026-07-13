@@ -355,30 +355,27 @@ class ApiService {
     final requestTimeout = timeout ?? _requestTimeout;
     final url = Uri.parse('${Apis.baseUrl}$endpoint');
     final token = await getToken();
-    if (filePath != null) {
-      try {
-        final request = http.MultipartRequest('POST', url)
-          ..headers['Accept'] = 'application/json'
-          ..fields.addAll(fields);
-        if (token != null && token.isNotEmpty) {
-          request.headers['Authorization'] = 'Bearer $token';
-        }
-        if (filePath != null && filePath.isNotEmpty) {
-          request.files.add(
-            await http.MultipartFile.fromPath(fileField, filePath),
-          );
-        }
-        final streamed = await request.send().timeout(requestTimeout);
-        final response = await http.Response.fromStream(streamed);
-        return _handleResponse(response);
-      } on TimeoutException {
-        throw ApiException(
-          statusCode: 408,
-          message: 'Request timed out. Please try again.',
-        );
-      } catch (e) {
-        rethrow;
+
+    try {
+      final request = http.MultipartRequest('POST', url)
+        ..headers['Accept'] = 'application/json'
+        ..fields.addAll(fields);
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
       }
+      if (filePath != null && filePath.isNotEmpty) {
+        request.files.add(
+          await http.MultipartFile.fromPath(fileField, filePath),
+        );
+      }
+      final streamed = await request.send().timeout(requestTimeout);
+      final response = await http.Response.fromStream(streamed);
+      return _handleResponse(response);
+    } on TimeoutException {
+      throw ApiException(
+        statusCode: 408,
+        message: 'Request timed out. Please try again.',
+      );
     }
   }
 
@@ -397,6 +394,9 @@ class ApiService {
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      // Some endpoints (e.g. profile embedding upload) return 2xx without
+      // a `success` flag; callers expect it for UI success handling.
+      decoded.putIfAbsent('success', () => true);
       return decoded;
     }
 

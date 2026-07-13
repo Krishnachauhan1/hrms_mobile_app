@@ -96,8 +96,9 @@ class LeavePage extends StatelessWidget {
             Row(
               children: controller.leaveBalance.entries.map((entry) {
                 final name = entry.key;
-                final remaining = entry.value['remaining'].toString();
-                final total = entry.value['total'].toString();
+                final remainingRaw = entry.value['remaining'];
+                final remaining = remainingRaw == -1 ? '∞' : remainingRaw.toString();
+                final total = remainingRaw == -1 ? '' : entry.value['total'].toString();
                 final isLast = entry.key == controller.leaveBalance.keys.last;
                 return Expanded(
                   child: Row(
@@ -139,13 +140,14 @@ class LeavePage extends StatelessWidget {
             ),
             children: [
               TextSpan(text: remaining),
-              TextSpan(
-                text: '/$total',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
-                  fontSize: 14,
+              if (total.isNotEmpty)
+                TextSpan(
+                  text: '/$total',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 14,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -240,7 +242,7 @@ class LeavePage extends StatelessWidget {
                             (t) => DropdownMenuItem<LeaveType>(
                               value: t,
                               child: Text(
-                                t.name,
+                                t.displayName,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -250,6 +252,26 @@ class LeavePage extends StatelessWidget {
                     ),
                   ),
           ),
+          if (controller.selectedType != null && !controller.selectedType!.isPaid)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE9FE),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Unpaid leave — no salary for these days. No paid balance required.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF5B21B6),
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ),
           const SizedBox(height: 20),
 
           // Date Pickers

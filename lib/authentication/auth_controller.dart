@@ -58,7 +58,12 @@ class AuthController extends GetxController {
       }
 
       if (employee != null) {
-        await ApiService.saveEmployee(employee);
+        final merged = Map<String, dynamic>.from(employee);
+        if (data?['plan_features'] is Map) {
+          merged['plan_features'] =
+              Map<String, dynamic>.from(data!['plan_features'] as Map);
+        }
+        await ApiService.saveEmployee(merged);
       }
 
       if (employee != null && employee["organization_id"] != null) {

@@ -8,12 +8,21 @@ class LeaveType {
   final int id;
   final String name;
   final int totalDays;
-  LeaveType({required this.id, required this.name, required this.totalDays});
+  final bool isPaid;
+  LeaveType({
+    required this.id,
+    required this.name,
+    required this.totalDays,
+    this.isPaid = true,
+  });
   factory LeaveType.fromJson(Map<String, dynamic> json) => LeaveType(
     id: json['id'] as int,
     name: json['name'] as String,
     totalDays: json['total_days'] as int? ?? 0,
+    isPaid: json['is_paid'] == true || json['is_paid'] == 1,
   );
+
+  String get displayName => isPaid ? name : '$name (Unpaid)';
 }
 
 // LeaveApplication
@@ -202,6 +211,15 @@ class LeaveController extends GetxController {
                 a.status.toLowerCase() == 'approved',
           )
           .length;
+
+      if (!type.isPaid) {
+        leaveBalance[type.name] = {
+          'total': 0,
+          'used': usedCount,
+          'remaining': -1,
+        };
+        continue;
+      }
 
       leaveBalance[type.name] = {
         'total': type.totalDays,
