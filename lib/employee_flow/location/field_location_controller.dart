@@ -31,7 +31,7 @@ class FieldLocationController extends GetxController {
     await LocationSyncTask.run(force: true);
   }
 
-  /// Check-in ke baad: service + turant location bhejo (retry agar server slow ho).
+  /// Check-in ke baad: service start + ek hi turant location post.
   Future<void> syncOnCheckIn() async {
     _log('FieldLocationController.syncOnCheckIn()');
     await start();

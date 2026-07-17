@@ -162,7 +162,10 @@ class LocationSyncTask {
     );
   }
 
-  static Future<void> _markError(SharedPreferences prefs, String message) async {
+  static Future<void> _markError(
+    SharedPreferences prefs,
+    String message,
+  ) async {
     await prefs.setString(lastErrorKey, message);
     _log('sync FAILED — $message');
     await logDebugState();

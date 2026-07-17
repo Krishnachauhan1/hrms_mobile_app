@@ -101,7 +101,6 @@ class LocationBackgroundService {
       service.invoke('runNow');
       _log('start() — service already running, invoked runNow');
     }
-    await LocationSyncTask.run(force: true);
   }
 
   static Future<void> stop() async {
@@ -221,6 +220,12 @@ class LocationBackgroundService {
     if (!always.isGranted) {
       final requested = await Permission.locationAlways.request();
       _log('permissions — locationAlways after request=$requested');
+    }
+
+    // Some OEMs kill background timers unless battery optimization is ignored.
+    final ignoreBattery = await Permission.ignoreBatteryOptimizations.status;
+    if (!ignoreBattery.isGranted) {
+      await Permission.ignoreBatteryOptimizations.request();
     }
   }
 }
