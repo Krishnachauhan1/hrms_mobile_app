@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>facerecognition</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access is used for face recognition attendance at your workplace.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

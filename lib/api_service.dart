@@ -182,7 +182,7 @@ class ApiService {
     final deviceId =
         deviceInfo['deviceId']?.toString() ??
         deviceInfo['identifierForVendor']?.toString();
-
+    print('Device ID========>>>>>>>>>$deviceId');
     if (deviceId == null || deviceId.isEmpty) {
       throw ApiException(
         statusCode: 400,
@@ -197,6 +197,7 @@ class ApiService {
       'password': password,
       'device_id': deviceId,
     });
+    print(body);
     try {
       final response = await http
           .post(url, headers: headers, body: body)

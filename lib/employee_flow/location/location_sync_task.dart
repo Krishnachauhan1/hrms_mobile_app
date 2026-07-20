@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
-
 import 'package:employee_app/apis.dart';
 import 'package:employee_app/employee_flow/location/location_snapshot.dart';
 import 'package:flutter/foundation.dart';
@@ -283,7 +282,9 @@ class LocationSyncTask {
             }),
           )
           .timeout(const Duration(seconds: 30));
-
+      print(
+        ' send location response========>>>>>>>>>>>> ${res.statusCode} ${res.body}',
+      );
       _log('POST /employee-locations → HTTP ${res.statusCode}');
       if (res.statusCode >= 200 && res.statusCode < 300) return null;
 
