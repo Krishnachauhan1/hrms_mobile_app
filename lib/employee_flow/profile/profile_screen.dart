@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:employee_app/employee_flow/dashboard/dashboard_controller.dart';
+import 'package:employee_app/employee_flow/face/face_recognition_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -135,16 +135,13 @@ class ProfileBottomSheet extends StatelessWidget {
                 label: Text(
                   ctrl.isUploadingProfileImage
                       ? 'Processing...'
-                      : 'Upload Profile Image',
+                      : 'Register Face Profile',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 onPressed: ctrl.isUploadingProfileImage
                     ? null
                     : () async {
-                        final File? file = await ctrl.pickImageFromCamera();
-                        if (file != null) {
-                          await ctrl.uploadProfileImage(file);
-                        }
+                        await FaceRecognitionLauncher.launchForProfileRegistration();
                       },
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF6C5CE7),

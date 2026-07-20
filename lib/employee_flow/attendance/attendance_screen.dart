@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:camera/camera.dart';
 import 'package:employee_app/employee_flow/employee_permission_controller.dart';
+import 'package:employee_app/employee_flow/face/face_recognition_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -50,7 +50,7 @@ class AttendancePage extends StatelessWidget {
                           : Colors.grey.shade400,
                     ),
                     onPressed: ctrl.canUseFace
-                        ? () => _openFaceSheet(context, controller)
+                        ? () => _launchFaceRecognitionApp(controller)
                         : () {
                             Get.snackbar(
                               'Access Denied',
@@ -295,6 +295,13 @@ class AttendancePage extends StatelessWidget {
     );
   }
 
+  Future<void> _launchFaceRecognitionApp(AttendanceController controller) async {
+    await FaceRecognitionLauncher.launchForAttendance(
+      isCheckedIn: controller.isCheckedIn,
+    );
+  }
+
+  /* In-app face recognition moved to separate Face Recognition app.
   void _openFaceSheet(BuildContext context, AttendanceController controller) {
     showModalBottomSheet(
       context: context,
@@ -304,6 +311,7 @@ class AttendancePage extends StatelessWidget {
       builder: (_) => _FaceRecognitionSheet(controller: controller),
     );
   }
+  */
 
   Widget _buildHistory(AttendanceController controller) {
     return Column(
@@ -561,6 +569,7 @@ class _QrScannerSheetState extends State<_QrScannerSheet> {
   }
 }
 
+/* In-app face recognition sheet — replaced by external Face Recognition app.
 class _FaceRecognitionSheet extends StatefulWidget {
   final AttendanceController controller;
   const _FaceRecognitionSheet({required this.controller});
@@ -893,6 +902,7 @@ class _FaceRecognitionSheetState extends State<_FaceRecognitionSheet> {
     );
   }
 }
+*/
 
 // Shared helpers
 Widget _handle({Color color = Colors.black12}) => Container(
@@ -1010,6 +1020,7 @@ class _OverlayPainter extends CustomPainter {
   bool shouldRepaint(_) => false;
 }
 
+/* Face overlay — only used by commented in-app face sheet.
 class _FaceOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -1044,3 +1055,4 @@ class _FaceOverlayPainter extends CustomPainter {
   @override
   bool shouldRepaint(_) => false;
 }
+*/

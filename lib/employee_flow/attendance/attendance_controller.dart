@@ -195,13 +195,20 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
         state == AppLifecycleState.paused) {
       _safeDisposeCamera();
     } else if (state == AppLifecycleState.resumed) {
-      if (isCameraOpen) {
-        _initCamera();
-      }
-      if (isCheckedIn && _shouldTrackFaceLocation()) {
-        unawaited(_syncFieldLocation());
-      }
+      unawaited(_refreshAfterExternalFaceApp());
     }
+  }
+
+  /// Refresh attendance when returning from the Face Recognition app.
+  Future<void> _refreshAfterExternalFaceApp() async {
+    if (employeeId == null) return;
+    await checkAttendanceStatus();
+    await fetchTodayAttendance();
+    await fetchAttendanceHistory();
+    if (isCheckedIn && _shouldTrackFaceLocation()) {
+      await _syncFieldLocation();
+    }
+    _safeUpdate();
   }
 
   void openQrScanner() {
@@ -289,7 +296,6 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     } catch (e) {
       if (e.toString().contains("Shift setting not found")) {
         _showError("Logout allowed but shift missing (backend issue)");
-        await _markLogout();
         return false;
       }
 
@@ -513,9 +519,8 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  // Face punch must go through the camera sheet (_FaceScanSheet -> markFaceCheckIn/Out).
-  // Do not auto-call login/logout without a captured photo.
-
+  // Face attendance is handled by the external Face Recognition app (deep link).
+  /*
   /// Returns null on success, or a user-facing error message for the face sheet.
   Future<String?> markFaceCheckIn(String imagePath) async {
     final prepError = await _prepareFaceAttendance();
@@ -630,6 +635,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
 
     return e.message;
   }
+  */
 
   Future<void> _playSuccessSound() async {
     try {
@@ -642,6 +648,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  /*
   Future<void> _markLogin({
     String? imagePath,
     Map<String, String> extraFields = const {},
@@ -808,6 +815,7 @@ class AttendanceController extends GetxController with WidgetsBindingObserver {
       fileField: 'profile_image',
     );
   }
+  */
 
   Future<void> _markLoginWithQr(String qrData) async {
     try {
